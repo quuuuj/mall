@@ -113,6 +113,8 @@ class SupervisorNode:
         else:
             result_parts = []
             for agent_name, result in sub_results.items():
+                if agent_name == "compliance":
+                    continue
                 if result:
                     result_parts.append(result)
             final_response = "\n\n".join(result_parts) if result_parts else "抱歉，暂时无法处理您的请求，请稍后重试。"
