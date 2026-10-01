@@ -87,3 +87,6 @@ application-prod.yml
 *.jmx
 docs/test-reports/
 classpath.txt
+
+
+__pycache__/
