@@ -46,6 +46,10 @@
 |---------|--------|---------|
 | ![限时秒杀](img/readme/portal-seckill.png) | ![购物车](img/readme/portal-cart.png) | ![订单列表](img/readme/portal-orders.png) |
 
+| 智能客服 |
+|---------|
+| ![智能客服](img/readme/portal-customer.png) |
+
 ### 管理后台（mall-admin）
 
 | 数据看板 | 商品管理 |
