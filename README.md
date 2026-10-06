@@ -4,7 +4,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen.svg)
 ![Vue](https://img.shields.io/badge/Vue-3.4-brightgreen.svg)
 
-基于 Spring Boot 3 + Vue 3 的 B2C 电商平台，覆盖用户注册登录、商品浏览、购物车、下单、支付全流程，并内置高并发秒杀系统。
+基于 Spring Boot 3 + Vue 3 的 B2C 电商平台，覆盖用户注册登录、商品浏览、购物车、下单、支付全流程，并内置高并发秒杀系统与多 Agent 智能客服。
 
 ## 在线体验
 
@@ -19,12 +19,14 @@
 | **mall-server** | 后端服务，REST API | Spring Boot 3.2.5 + MyBatis-Plus + MySQL + Redis + RabbitMQ + Elasticsearch + Sa-Token | 8800 |
 | **mall-admin** | 管理后台前端 | Vue 3.4 + Element Plus + Pinia + ECharts + UnoCSS | 3002 |
 | **mall-portal** | 用户门户前端 | Vue 3.4 + Element Plus + Pinia | 3001 |
+| **mall-customer** | 多 Agent 智能客服（独立服务） | LangGraph + LangChain + FastAPI + Redis + FAISS | 8000 |
 
 > 支付为**模拟支付**：订单提交后本地生成支付流水号，未接入真实第三方支付渠道。
 
 ## 核心亮点
 
 - ⚡ **秒杀高并发方案**：Redis Lua 脚本原子扣减库存防超卖；RabbitMQ 消息削峰异步下单；消费失败自动重试（最多 3 次），超限回滚库存；用户级防重与消费幂等
+- 🤖 **多 Agent 智能客服**：基于 LangGraph 编排 Supervisor 路由、知识库 RAG 与工单处理 Agent，合规审查兜底；全链路 SSE 流式响应，会话持久化与历史上下文管理
 - ⏰ **订单超时取消双保险**：RabbitMQ 延迟队列（TTL 10 分钟）到期自动取消订单并恢复库存，前端倒计时轮询兜底
 - 🔍 **Elasticsearch 商品搜索**：商品文档同步 + 定时增量同步任务，关键词/分类检索
 - 🔐 **认证与安全**：Sa-Token 双端登录态隔离、同端互踢（同账号新登录踢掉旧会话）；`@RateLimit` 注解 + Redis 滑动窗口限流；Redisson 分布式锁；布隆过滤器防缓存穿透
@@ -104,6 +106,16 @@ flowchart TD
 | Redisson | 3.24 | 分布式锁 |
 | springdoc-openapi | 2.3 | API 文档（Swagger UI） |
 
+### 智能客服（mall-customer）
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| LangGraph | 0.2+ | 多 Agent 流程图编排（Supervisor 架构） |
+| LangChain | 0.3+ | LLM 交互与 Prompt 工程 |
+| FastAPI | 0.115+ | 高性能 Web 框架（SSE 流式聊天、REST API） |
+| Redis | 7 | 短期会话记忆（多轮对话上下文） |
+| FAISS | 1.9+ | 长期向量记忆与知识库检索 |
+
 ### 前端
 
 | 技术 | mall-admin | mall-portal |
@@ -128,6 +140,7 @@ flowchart LR
     end
 
     S[mall-server 后端<br/>:8800]
+    C[mall-customer 智能客服<br/>:8000]
 
     subgraph 中间件 Docker 容器
         M[(MySQL 8<br/>:3306)]
@@ -140,6 +153,8 @@ flowchart LR
     B --> A
     P -->|/portal-api 代理| S
     A -->|/admin-api 代理| S
+    S -->|WebClient SSE| C
+    C --> R
     S --> M
     S --> R
     S --> Q
@@ -173,12 +188,18 @@ mall/
 │   ├── src/router/               # 路由
 │   ├── src/views/                # 页面（商品 / 订单 / 用户 / 分类 / 秒杀 / 看板）
 │   └── src/components/           # 公共组件
-└── mall-portal/                  # 用户门户前端（Vue 3，端口 3001）
-    ├── src/api/                  # 接口封装
-    ├── src/stores/               # Pinia 状态管理
-    ├── src/router/               # 路由
-    ├── src/views/                # 页面（首页 / 商品 / 秒杀 / 购物车 / 订单等）
-    └── src/components/           # 公共组件
+├── mall-portal/                  # 用户门户前端（Vue 3，端口 3001）
+│   ├── src/api/                  # 接口封装
+│   ├── src/stores/               # Pinia 状态管理
+│   ├── src/router/               # 路由
+│   ├── src/views/                # 页面（首页 / 商品 / 秒杀 / 购物车 / 订单等）
+│   └── src/components/           # 公共组件（客服弹窗 CustomerModal 等）
+└── mall-customer/                # 多 Agent 智能客服（Python FastAPI，端口 8000）
+    ├── agents/                   # LangGraph 编排（Supervisor、RAG、合规审查等）
+    ├── api/                      # FastAPI 入口与 SSE 聊天接口
+    ├── memory/                   # 短期（Redis）与长期（FAISS）记忆
+    ├── mcp/                      # 工具服务
+    └── tracing/                  # OpenTelemetry 全链路追踪
 ```
 
 ## 本地启动
@@ -187,6 +208,7 @@ mall/
 
 - JDK 17+、Maven 3
 - Node.js 18+、npm
+- Python 3.11+、pip（仅 `mall-customer` 智能客服模块需要）
 - Docker（中间件统一由 Docker 容器提供，无需本机安装 MySQL/Redis 等）
 
 ### 1. 启动中间件
@@ -201,17 +223,12 @@ docker compose -f docker/local/docker-compose.yml up -d
 
 ```bash
 cd mall-server
+# 首次运行请复制配置模板（.env 默认使用占位符，图片服务将自动走 NoOp 降级模式）
+cp .env.example .env
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--spring.amqp.deserialization.trust.all=true
 ```
 
-**需要配置的环境变量**：
-
-| 变量 | 说明 |
-|------|------|
-| `OSS_ACCESS_KEY_ID` | 阿里云 OSS AccessKey ID |
-| `OSS_ACCESS_KEY_SECRET` | 阿里云 OSS AccessKey Secret |
-
-> 这两个变量必须设置，否则服务无法启动；设置任意值即可正常启动和浏览，但**图片上传功能需要真实密钥**。中间件连接配置已内置在 `application-dev.yml` 中，无需额外配置。
+> **关于 OSS 配置**：本地开发环境通过 `mall-server/.env` 文件配置 OSS 连接信息（模板见 `.env.example`）。未填入真实 AccessKey 时系统会自动启用 NoOp 降级模式，不影响服务启动及大部分业务功能（仅上传/删除图片报错）。中间件连接配置已内置在 `application-dev.yml` 中，无需额外调整。
 
 ### 3. 启动管理后台（端口 3002）
 
@@ -232,6 +249,17 @@ npm run dev
 ```
 
 访问：http://localhost:3001
+
+### 5. 启动智能客服（端口 8000，可选）
+
+```bash
+cd mall-customer
+pip install -r requirements.txt
+cp .env.example .env    # 至少配置 MODEL_NAME、OPENAI_API_KEY 与 OPENAI_BASE_URL
+python -m api.main
+```
+
+访问：http://localhost:8000/docs（Swagger UI 文档）
 
 ### 其他入口
 
