@@ -1,8 +1,6 @@
 package com.qiujie.config;
 
-import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpInterface;
-import cn.dev33.satoken.stp.StpUtil;
 import com.qiujie.entity.User;
 import com.qiujie.enums.RoleEnum;
 import com.qiujie.mapper.UserMapper;

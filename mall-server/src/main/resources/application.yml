@@ -84,7 +84,10 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 sa-token:
-  token-name: mall-token
+  # token-name 既是 HTTP 请求头 / Cookie 名，也是 Sa-Token 的 Redis Key 前缀：
+  # 取 mall 使 Token Key 与业务 Key 统一为 mall: 前缀（mall:login:token:xxx）
+  # 注意：token-prefix 只作用于 HTTP 传输层的 token 字符串，不影响 Redis Key，故不使用
+  token-name: mall
   timeout: 7200
   active-timeout: -1
   is-concurrent: false
@@ -92,7 +95,8 @@ sa-token:
   is-log: false
   token-style: uuid
   alone-redis:
-    database: 1
+    # Token 与业务数据统一放 DB 0，便于数据管理；生产环境在 application-prod.yml 中显式覆盖为 1
+    database: 0
     host: ${spring.data.redis.host}
     port: ${spring.data.redis.port}
     user: ${REDIS_USER:}
