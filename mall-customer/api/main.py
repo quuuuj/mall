@@ -94,46 +94,62 @@ class ChatResponse(BaseModel):
     compliance_passed: bool
 
 
-@app.post("/api/chat", response_model=ChatResponse)
+import asyncio
+import json
+
+@app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """主聊天接口"""
+    """主聊天接口 — SSE流式输出"""
     if graph is None:
         raise HTTPException(status_code=503, detail="系统初始化中")
 
     session_id = request.session_id or str(uuid.uuid4())
 
-    await short_term_memory.add_message(session_id, "user", request.message)
+    async def event_generator():
+        await short_term_memory.add_message(session_id, "user", request.message)
 
-    from langchain_core.messages import HumanMessage
+        from langchain_core.messages import HumanMessage
 
-    initial_state = {
-        "messages": [HumanMessage(content=request.message)],
-        "user_id": request.user_id,
-        "session_id": session_id,
-        "intent": "",
-        "sub_results": {},
-        "compliance_passed": True,
-        "final_response": "",
-        "current_agent": "",
-        "retry_count": 0,
-    }
+        initial_state = {
+            "messages": [HumanMessage(content=request.message)],
+            "user_id": request.user_id,
+            "session_id": session_id,
+            "intent": "",
+            "sub_results": {},
+            "compliance_passed": True,
+            "final_response": "",
+            "current_agent": "",
+            "retry_count": 0,
+        }
 
-    config = {"configurable": {"thread_id": session_id}}
+        config = {"configurable": {"thread_id": session_id}}
 
-    try:
-        result = await graph.ainvoke(initial_state, config=config)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+        try:
+            result = await graph.ainvoke(initial_state, config=config)
+            final_response = result.get("final_response", "系统处理异常，请稍后重试")
+        except Exception as e:
+            final_response = f"处理失败: {str(e)}"
 
-    final_response = result.get("final_response", "系统处理异常，请稍后重试")
+        await short_term_memory.add_message(session_id, "assistant", final_response)
 
-    await short_term_memory.add_message(session_id, "assistant", final_response)
+        # 模拟打字机流式切块输出
+        chunk_size = 4
+        for i in range(0, len(final_response), chunk_size):
+            chunk = final_response[i:i + chunk_size]
+            payload = json.dumps({"content": chunk}, ensure_ascii=False)
+            yield f"data: {payload}\n\n"
+            await asyncio.sleep(0.03)
 
-    return ChatResponse(
-        response=final_response,
-        session_id=session_id,
-        intent=result.get("intent", "unknown"),
-        compliance_passed=result.get("compliance_passed", True),
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
     )
 
 

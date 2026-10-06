@@ -113,3 +113,8 @@ aliyun:
 upload:
   path: ${UPLOAD_PATH:img/}
 
+mall:
+  customer:
+    url: ${MALL_CUSTOMER_URL:http://localhost:8000}
+
+

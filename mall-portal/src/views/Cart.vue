@@ -7,7 +7,7 @@
     </div>
 
     <div class="cart-layout">
-      <Sidebar active="cart" />
+      <UserSidebar active="cart" />
       <div class="main-area">
         <StepBar :current="0" />
 
@@ -84,7 +84,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ShoppingCart, Goods } from '@element-plus/icons-vue'
 import { getImageUrl } from '@/api/product'
-import Sidebar from '../components/Sidebar.vue'
+import UserSidebar from '../components/UserSidebar.vue'
 import StepBar from '../components/StepBar.vue'
 import { getCartList, updateCartAmount, deleteCartItem, batchDeleteCart } from '../api'
 

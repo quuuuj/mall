@@ -7,7 +7,7 @@
     </div>
 
     <div class="order-layout">
-      <Sidebar active="orders" />
+      <UserSidebar active="orders" />
 
       <div class="main-area">
         <div class="order-tabs">
@@ -138,7 +138,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
-import Sidebar from '../components/Sidebar.vue'
+import UserSidebar from '../components/UserSidebar.vue'
 import PayDialog from '../components/PayDialog.vue'
 import { getOrderList, cancelOrder, receiptOrder, updateRecipient, deleteOrder } from '../api'
 import { getImageUrl } from '../api'

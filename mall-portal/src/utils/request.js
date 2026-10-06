@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 import { getAuth, removeAuth } from '@/utils/auth'
 
 const request = axios.create({
-  baseURL: '/dev',
+  baseURL: '/portal-api',
   timeout: 10000,
   withCredentials: true
 })

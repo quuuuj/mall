@@ -6,4 +6,4 @@ export const searchProducts = (params) => request.get('/product/search', { param
 export const getProductDetail = (id) => request.get(`/product/detail/${id}`)
 export const getCategories = () => request.get('/product/categories')
 
-export const getImageUrl = (key) => `/dev/product/img?key=${key}`
+export const getImageUrl = (key) => `/portal-api/product/img?key=${key}`

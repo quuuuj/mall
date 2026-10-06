@@ -8,7 +8,7 @@
       <span class="current">确认订单</span>
     </div>
     <div class="checkout-wrap">
-      <Sidebar active="cart" />
+      <UserSidebar active="cart" />
 
       <div class="main-area">
         <StepBar :current="showSuccess ? 2 : 1" />
@@ -94,7 +94,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
-import Sidebar from '../components/Sidebar.vue'
+import UserSidebar from '../components/UserSidebar.vue'
 import StepBar from '../components/StepBar.vue'
 import PayDialog from '../components/PayDialog.vue'
 import { useUserStore } from '@/stores/user'

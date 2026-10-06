@@ -7,7 +7,7 @@
     </div>
 
     <div class="user-layout">
-      <Sidebar active="userinfo"/>
+      <UserSidebar active="userinfo"/>
 
       <div class="main-area">
         <div class="profile-card">
@@ -62,7 +62,7 @@
 import {ref, reactive, watch} from 'vue'
 import {ElMessage} from 'element-plus'
 import {User, Camera, Loading} from '@element-plus/icons-vue'
-import Sidebar from '../components/Sidebar.vue'
+import UserSidebar from '../components/UserSidebar.vue'
 import { useUserStore } from '@/stores/user'
 import { getAvatar } from '@/api/user'
 

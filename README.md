@@ -138,7 +138,7 @@ flowchart LR
 
     B --> P
     B --> A
-    P -->|/dev 代理| S
+    P -->|/portal-api 代理| S
     A -->|/admin-api 代理| S
     S --> M
     S --> R

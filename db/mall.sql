@@ -279,6 +279,37 @@ LOCK TABLES `sys_user` WRITE;
 INSERT INTO `sys_user` VALUES (1,'admin','管理员',0,'广州','$2a$10$lLLBS06gXc.vGYeQto8SEOMciEOY16lfu8o41PMWD12RUpWFpBqwe','',NULL,'13800000000','admin@mall.com',NULL,1,1,'2026-06-08 05:28:41','2026-09-05 16:13:56',0),(2,'user','测试用户',0,'广东省广州市天河区演示路 1 号','$2a$10$lLLBS06gXc.vGYeQto8SEOMciEOY16lfu8o41PMWD12RUpWFpBqwe','',NULL,'13900000000','user@mall.com',NULL,0,1,'2026-06-08 05:28:41','2026-09-05 16:13:56',0),(3,'testuser_qa','testuser_qa',0,'','$2a$10$6MnUUbgScAKQUNbbHDEz.eYCUXWNmgEqMgPFwR5zwWFG8BXg1SsJ6','',NULL,'13800138000','',NULL,0,1,'2026-06-15 06:05:00','2026-06-15 06:05:00',0);
 /*!40000 ALTER TABLE `sys_user` ENABLE KEYS */;
 UNLOCK TABLES;
+--
+-- Table structure for table `cs_session`
+--
+
+DROP TABLE IF EXISTS `cs_session`;
+CREATE TABLE `cs_session` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '会话ID',
+  `user_id` int NOT NULL COMMENT '用户ID',
+  `title` varchar(100) NOT NULL DEFAULT '新对话' COMMENT '会话标题',
+  `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除: 0未删除 1已删除',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_update` (`user_id`, `update_time` DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服会话表';
+
+--
+-- Table structure for table `cs_message`
+--
+
+DROP TABLE IF EXISTS `cs_message`;
+CREATE TABLE `cs_message` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+  `session_id` bigint NOT NULL COMMENT '关联会话ID (cs_session.id)',
+  `type` varchar(16) NOT NULL COMMENT '发送方类型: user(用户) / assistant(客服)',
+  `content` text NOT NULL COMMENT '消息文本内容',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_session_create` (`session_id`, `create_time` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服消息明细表';
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

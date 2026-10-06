@@ -48,10 +48,10 @@ export default defineConfig({
   server: {
     port: 3001,
     proxy: {
-      '/dev': {
+      '/portal-api': {
         target: 'http://localhost:8800',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/dev/, '/portal')
+        rewrite: (path) => path.replace(/^\/portal-api/, '/portal')
       }
     }
   }
