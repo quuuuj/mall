@@ -11,7 +11,6 @@ import com.qiujie.service.SeckillService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 
 @SaCheckRole("admin")
 @Tag(name = "秒杀管理")
-@Profile("!test")
 @RestController
 @RequestMapping("/admin/seckill")
 public class AdminSeckillController {

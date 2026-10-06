@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
-import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +25,6 @@ import java.util.List;
  * @author qiujie
  */
 @Component
-@Profile("!test")
 public class OrderTimeoutListener {
 
     private static final Logger log = LoggerFactory.getLogger(OrderTimeoutListener.class);

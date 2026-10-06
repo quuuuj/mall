@@ -9,7 +9,6 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 /**
  * RabbitMQ 配置 — 秒杀订单队列
@@ -17,7 +16,6 @@ import org.springframework.context.annotation.Profile;
  * @author qiujie
  */
 @Configuration
-@Profile("!test")
 public class RabbitMQConfig {
 
     public static final String SECKILL_QUEUE = "seckill.order.queue";

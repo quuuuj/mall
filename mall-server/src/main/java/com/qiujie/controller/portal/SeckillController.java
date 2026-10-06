@@ -7,7 +7,6 @@ import com.qiujie.dto.ResponseDTO;
 import com.qiujie.service.SeckillService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +18,6 @@ import java.util.Map;
  * @author qiujie
  */
 @Tag(name = "秒杀活动")
-@Profile("!test")
 @RestController
 @RequestMapping("/portal/seckill")
 public class SeckillController {

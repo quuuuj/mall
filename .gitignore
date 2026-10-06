@@ -90,3 +90,6 @@ classpath.txt
 
 
 __pycache__/
+
+# Git Bash crash dumps
+*.stackdump

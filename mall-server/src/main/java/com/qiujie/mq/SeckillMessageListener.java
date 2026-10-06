@@ -23,7 +23,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import org.springframework.context.annotation.Profile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.Header;
@@ -55,7 +54,6 @@ import java.util.Map;
  * @author qiujie
  */
 @Component
-@Profile("!test") // 测试环境不注册该 Bean，避免 RabbitMQ 依赖导致测试失败
 public class SeckillMessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(SeckillMessageListener.class);

@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 
@@ -24,7 +23,6 @@ import java.util.List;
  * @author qiujie
  */
 @Configuration
-@Profile("!test")
 public class ElasticsearchConfig implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchConfig.class);
