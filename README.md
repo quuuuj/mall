@@ -229,7 +229,7 @@ docker compose -f docker/local/docker-compose.yml up -d
 cd mall-server
 # 首次运行请复制配置模板（.env 默认使用占位符，图片服务将自动走 NoOp 降级模式）
 cp .env.example .env
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments=--spring.amqp.deserialization.trust.all=true
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 > **关于 OSS 配置**：本地开发环境通过 `mall-server/.env` 文件配置 OSS 连接信息（模板见 `.env.example`）。未填入真实 AccessKey 时系统会自动启用 NoOp 降级模式，不影响服务启动及大部分业务功能（仅上传/删除图片报错）。中间件连接配置已内置在 `application-dev.yml` 中，无需额外调整。
@@ -276,6 +276,10 @@ python -m api.main
 |----|--------|------|------|
 | 管理端 | `admin` | `123456` | 管理员，登录框已预填 |
 | 门户端 | `user` | `123456` | 测试用户（也可用 admin 登录门户） |
+
+## 参考开源项目
+
+- **[smart-cs-multi-agent](https://github.com/bcefghj/smart-cs-multi-agent)**：本项目 `mall-customer` 模块的多 Agent 智能客服（LangGraph + FastAPI 架构编排、三层记忆体系设计等）参考了该开源项目。
 
 ## 交流群
 
