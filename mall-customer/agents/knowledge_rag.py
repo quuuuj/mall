@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
-from memory.long_term import LongTermMemory
+from memory.long_term_memory import LongTermMemory
 from tracing.otel_config import trace_agent_call
 
 
@@ -139,8 +139,5 @@ class KnowledgeRAGAgent:
 
         return {
             **state,
-            "sub_results": {
-                **state.get("sub_results", {}),
-                "knowledge_rag": answer,
-            },
+            "messages": [AIMessage(content=answer)],
         }

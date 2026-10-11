@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from tracing.otel_config import trace_agent_call
@@ -184,33 +184,18 @@ class ComplianceCheckerAgent:
 
     @trace_agent_call("compliance_process")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:
-        """作为Graph节点处理状态"""
-        sub_results = state.get("sub_results", {})
+        """作为Graph节点处理状态：审查子Agent本轮写入 messages 的回答"""
+        messages = state.get("messages", [])
+        last = messages[-1] if messages else None
 
-        content_to_check = ""
-        for agent_name, result in sub_results.items():
-            if isinstance(result, str):
-                content_to_check += result + "\n"
-
-        if not content_to_check.strip():
+        # 末尾 AIMessage 即子Agent本轮的草稿回答；
+        # 不存在草稿（如直达合规审查）时跳过审查
+        if not isinstance(last, AIMessage) or not last.content:
             return {**state, "compliance_passed": True}
 
-        compliance_result = await self.full_check(content_to_check)
-
-        if not compliance_result.passed:
-            for key in sub_results:
-                if isinstance(sub_results[key], str):
-                    sub_results[key] = compliance_result.sanitized_content
+        compliance_result = await self.full_check(last.content)
 
         return {
             **state,
             "compliance_passed": compliance_result.passed,
-            "sub_results": {
-                **sub_results,
-                "compliance": {
-                    "passed": compliance_result.passed,
-                    "risk_level": compliance_result.risk_level,
-                    "violations": compliance_result.violations,
-                },
-            },
         }

@@ -17,8 +17,8 @@ from pydantic import BaseModel
 
 from agents.supervisor import create_supervisor_graph
 from memory.working_memory import WorkingMemory
-from memory.short_term import ShortTermMemory
-from memory.long_term import LongTermMemory
+from memory.short_term_memory import ShortTermMemory
+from memory.long_term_memory import LongTermMemory
 from mcp.mcp_server import MCPToolServer, create_default_tools
 from tracing.otel_config import init_tracer, AgentMetrics
 
@@ -26,7 +26,7 @@ load_dotenv()
 
 
 working_memory = WorkingMemory()
-short_term_memory = ShortTermMemory(redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+short_term_memory = ShortTermMemory()
 long_term_memory = LongTermMemory(index_path=os.getenv("FAISS_INDEX_PATH", "./vector_store/faiss_index"))
 mcp_server = create_default_tools(MCPToolServer())
 metrics = AgentMetrics()
@@ -43,10 +43,13 @@ async def lifespan(app: FastAPI):
         otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
     )
 
+    # 短期记忆：Redis 持久化 Agent State，Redis 不可用时自动降级内存
+    await short_term_memory.setup()
+
     graph = create_supervisor_graph(
         working_memory=working_memory,
-        short_term_memory=short_term_memory,
         long_term_memory=long_term_memory,
+        checkpointer=short_term_memory.checkpointer,
     )
 
     long_term_memory.add_document(
@@ -63,6 +66,8 @@ async def lifespan(app: FastAPI):
     )
 
     yield
+
+    await short_term_memory.aclose()
 
 
 app = FastAPI(
@@ -106,18 +111,14 @@ async def chat(request: ChatRequest):
     session_id = request.session_id or str(uuid.uuid4())
 
     async def event_generator():
-        await short_term_memory.add_message(session_id, "user", request.message)
-
-        from langchain_core.messages import HumanMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
         initial_state = {
             "messages": [HumanMessage(content=request.message)],
             "user_id": request.user_id,
             "session_id": session_id,
             "intent": "",
-            "sub_results": {},
             "compliance_passed": True,
-            "final_response": "",
             "current_agent": "",
             "retry_count": 0,
         }
@@ -126,11 +127,16 @@ async def chat(request: ChatRequest):
 
         try:
             result = await graph.ainvoke(initial_state, config=config)
-            final_response = result.get("final_response", "系统处理异常，请稍后重试")
+            # 最终回复即 Agent State 中末尾的 AIMessage（子Agent草稿或合成节点兜底话术）
+            messages = result.get("messages") or []
+            last = messages[-1] if messages else None
+            final_response = (
+                last.content
+                if isinstance(last, AIMessage) and last.content
+                else "系统处理异常，请稍后重试"
+            )
         except Exception as e:
             final_response = f"处理失败: {str(e)}"
-
-        await short_term_memory.add_message(session_id, "assistant", final_response)
 
         # 模拟打字机流式切块输出
         chunk_size = 4
@@ -154,9 +160,11 @@ async def chat(request: ChatRequest):
 
 
 @app.get("/api/history/{session_id}")
-async def get_history(session_id: str):
-    """获取对话历史"""
-    history = await short_term_memory.get_history(session_id)
+async def get_history(session_id: str, last_n: int = 20):
+    """获取对话历史 — 读取 LangGraph Agent State（checkpointer）"""
+    if graph is None:
+        raise HTTPException(status_code=503, detail="系统初始化中")
+    history = await short_term_memory.get_history(graph, session_id, last_n=last_n)
     return {"session_id": session_id, "messages": history}
 
 

@@ -40,7 +40,7 @@ class WorkingMemory:
             if len(self._store[session_id]) > self._max_entries:
                 self._store[session_id] = self._store[session_id][-self._max_entries:]
 
-            self._context[session_id].update(data)
+            self._context[session_id].update(data) # Python 的 dict.update() 不是把整个字典替换掉，而是按键逐个合并
 
     def get_context(self, session_id: str) -> dict[str, Any]:
         """获取当前session的完整上下文"""
