@@ -1,0 +1,124 @@
+server:
+  port: 8800
+
+spring:
+  application:
+    name: mall
+  profiles:
+    active: dev
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: true
+
+  datasource:
+    url: ${spring.datasource.url}
+    username: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 30MB
+
+  data:
+    redis:
+      host: ${spring.data.redis.host}
+      port: ${spring.data.redis.port}
+      username: ${REDIS_USER:}
+      password: ${spring.data.redis.password}
+      key-prefix: "mall:"
+      database: 0
+      lettuce:
+        pool:
+          max-idle: 16
+          max-active: 32
+          min-idle: 8
+
+  rabbitmq:
+    host: ${spring.rabbitmq.host}
+    port: ${spring.rabbitmq.port}
+    username: ${spring.rabbitmq.username}
+    password: ${spring.rabbitmq.password}
+    listener:
+      simple:
+        prefetch: 1
+        concurrency: 4
+        acknowledge-mode: manual
+
+  elasticsearch:
+    uris: ${spring.elasticsearch.uris}
+    connection-timeout: 3s
+    socket-timeout: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+    elasticsearch:
+      enabled: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-enums-package: com.qiujie.enums
+  mapper-locations: classpath:mapper/*.xml
+  global-config:
+    db-config:
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+sa-token:
+  # token-name 既是 HTTP 请求头 / Cookie 名，也是 Sa-Token 的 Redis Key 前缀：
+  # 取 mall 使 Token Key 与业务 Key 统一为 mall: 前缀（mall:login:token:xxx）
+  # 注意：token-prefix 只作用于 HTTP 传输层的 token 字符串，不影响 Redis Key，故不使用
+  token-name: mall
+  timeout: 7200
+  active-timeout: -1
+  is-concurrent: false
+  is-share: true
+  is-log: false
+  token-style: uuid
+  alone-redis:
+    # Token 与业务数据统一放 DB 0，便于数据管理；生产环境在 application-prod.yml 中显式覆盖为 1
+    database: 0
+    host: ${spring.data.redis.host}
+    port: ${spring.data.redis.port}
+    user: ${REDIS_USER:}
+    password: ${spring.data.redis.password}
+    timeout: 3000ms
+
+springdoc:
+  swagger-ui:
+    url: /admin-api/v3/api-docs
+
+aliyun:
+  oss:
+    endpoint: ${aliyun.oss.endpoint}
+    access-key-id: ${aliyun.oss.access-key-id}
+    access-key-secret: ${aliyun.oss.access-key-secret}
+    bucket-name: ${aliyun.oss.bucket-name}
+
+upload:
+  path: ${UPLOAD_PATH:img/}
+
+mall:
+  customer:
+    url: ${MALL_CUSTOMER_URL:http://localhost:8000}
+
+

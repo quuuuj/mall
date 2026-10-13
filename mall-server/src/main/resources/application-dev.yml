@@ -1,0 +1,47 @@
+app:
+  cors:
+    allowed-origins: "*"
+
+spring:
+  config:
+    # 加载本地 .env（properties 格式，不入库），供下方 ${OSS_*} 占位符解析；系统环境变量优先级更高
+    # 双候选路径：命令行从 mall-server 启动命中第 1 条；IDEA 默认工作目录（项目根）命中第 2 条
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:mall-server/.env[.properties]
+  amqp:
+    deserialization:
+      trusted-packages: com.qiujie.mq
+  autoconfigure:
+    exclude: []
+  datasource:
+    url: jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 123456
+      database: 0
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: 123456
+  elasticsearch:
+    uris: http://localhost:19200
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+aliyun:
+  oss:
+    endpoint: ${OSS_ENDPOINT}
+    access-key-id: ${OSS_ACCESS_KEY_ID}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET}
+    bucket-name: ${OSS_BUCKET_NAME}
+
+rate-limit:
+  enabled: false
