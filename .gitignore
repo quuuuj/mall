@@ -73,6 +73,7 @@ dist/
 
 # Planning files
 findings.md
+.scratch/
 progress.md
 task_plan.md
 

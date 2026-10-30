@@ -19,12 +19,16 @@ public class WebClientConfig {
     /**
      * 智能客服（mall-customer）专用客户端。
      * <p>
-     * 注意：该客户端用于 SSE 长连接中继，不要设置过短的响应超时，
-     * 否则大模型出字较慢时会中断流式输出。
+     * 该服务只接受带共享密钥的内部调用，密钥以 defaultHeader 形式附加在客户端上，
+     * 业务代码无需逐次传递。响应超时不可设得过短，否则大模型出字较慢时会中断流。
      */
     @Bean
     public WebClient customerWebClient(WebClient.Builder builder,
-                                       @Value("${mall.customer.url:http://localhost:8000}") String customerApiUrl) {
-        return builder.baseUrl(customerApiUrl).build();
+                                       @Value("${mall.customer.url:http://localhost:8000}") String customerApiUrl,
+                                       @Value("${mall.customer.token:}") String customerToken) {
+        return builder
+                .baseUrl(customerApiUrl)
+                .defaultHeader("Authorization", "Bearer " + customerToken)
+                .build();
     }
 }

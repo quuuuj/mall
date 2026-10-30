@@ -259,9 +259,11 @@ npm run dev
 ```bash
 cd mall-customer
 pip install -r requirements.txt
-cp .env.example .env    # 至少配置 MODEL_NAME、OPENAI_API_KEY 与 OPENAI_BASE_URL
+cp .env.example .env    # 需配置 MODEL_NAME、OPENAI_API_KEY、OPENAI_BASE_URL 与 INTERNAL_API_TOKEN
 python -m api.main
 ```
+
+`INTERNAL_API_TOKEN` 需与 `mall-server` 的 `MALL_CUSTOMER_TOKEN` 一致，否则对话请求会被拒绝。该服务只接受带 `Authorization: Bearer <token>` 的调用。
 
 访问：http://localhost:8000/docs（Swagger UI 文档）
 
@@ -277,10 +279,3 @@ python -m api.main
 | 管理端 | `admin` | `123456` | 管理员，登录框已预填 |
 | 门户端 | `user` | `123456` | 测试用户（也可用 admin 登录门户） |
 
-## 参考开源项目
-
-- **[smart-cs-multi-agent](https://github.com/bcefghj/smart-cs-multi-agent)**：本项目 `mall-customer` 模块的多 Agent 智能客服（LangGraph + FastAPI 架构编排、三层记忆体系设计等）参考了该开源项目。
-
-## 交流群
-
-欢迎加入 QQ 交流群：**967925576**

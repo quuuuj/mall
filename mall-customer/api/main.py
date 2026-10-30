@@ -4,32 +4,51 @@ FastAPI入口 — 提供REST API + SSE流式响应
 
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from agents.supervisor import create_supervisor_graph
 from memory.working_memory import WorkingMemory
 from memory.short_term_memory import ShortTermMemory
 from memory.long_term_memory import LongTermMemory
-from mcp.mcp_server import MCPToolServer, create_default_tools
-from tracing.otel_config import init_tracer, AgentMetrics
+from tracing.otel_config import init_tracer
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+INTERNAL_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
+_bearer = HTTPBearer(auto_error=False)
+
+
+def require_internal_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> None:
+    """服务间调用鉴权 — 只在内部服务之间使用，不对公网。"""
+    if not INTERNAL_TOKEN:
+        raise HTTPException(status_code=503, detail="服务间鉴权未配置")
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="缺少鉴权凭据")
+    if credentials.credentials != INTERNAL_TOKEN:
+        raise HTTPException(status_code=403, detail="鉴权凭据无效")
 
 
 working_memory = WorkingMemory()
 short_term_memory = ShortTermMemory()
-long_term_memory = LongTermMemory(index_path=os.getenv("FAISS_INDEX_PATH", "./vector_store/faiss_index"))
-mcp_server = create_default_tools(MCPToolServer())
-metrics = AgentMetrics()
+long_term_memory = LongTermMemory(
+    index_path=os.getenv("FAISS_INDEX_PATH", "./vector_store/faiss_index")
+)
 graph = None
 
 
@@ -77,12 +96,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", "http://localhost:3001,http://localhost:3002").split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
 
@@ -92,17 +117,7 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
 
 
-class ChatResponse(BaseModel):
-    response: str
-    session_id: str
-    intent: str
-    compliance_passed: bool
-
-
-import asyncio
-import json
-
-@app.post("/api/chat")
+@app.post("/api/chat", dependencies=[Depends(require_internal_token)])
 async def chat(request: ChatRequest):
     """主聊天接口 — SSE流式输出"""
     if graph is None:
@@ -135,8 +150,9 @@ async def chat(request: ChatRequest):
                 if isinstance(last, AIMessage) and last.content
                 else "系统处理异常，请稍后重试"
             )
-        except Exception as e:
-            final_response = f"处理失败: {str(e)}"
+        except Exception:
+            logger.exception("对话处理失败 session_id=%s", session_id)
+            final_response = "服务暂时不可用，请稍后重试"
 
         # 模拟打字机流式切块输出
         chunk_size = 4
@@ -159,43 +175,13 @@ async def chat(request: ChatRequest):
     )
 
 
-@app.get("/api/history/{session_id}")
+@app.get("/api/history/{session_id}", dependencies=[Depends(require_internal_token)])
 async def get_history(session_id: str, last_n: int = 20):
     """获取对话历史 — 读取 LangGraph Agent State（checkpointer）"""
     if graph is None:
         raise HTTPException(status_code=503, detail="系统初始化中")
     history = await short_term_memory.get_history(graph, session_id, last_n=last_n)
     return {"session_id": session_id, "messages": history}
-
-
-@app.get("/api/tools")
-async def list_tools():
-    """MCP工具发现接口"""
-    return {"tools": mcp_server.list_tools()}
-
-
-@app.post("/api/tools/call")
-async def call_tool(request: dict):
-    """MCP工具调用接口"""
-    result = await mcp_server.call_tool(
-        name=request.get("name", ""),
-        arguments=request.get("arguments", {}),
-    )
-    return {
-        "success": result.success,
-        "result": result.result,
-        "error": result.error,
-        "duration_ms": result.duration_ms,
-    }
-
-
-@app.get("/api/metrics")
-async def get_metrics():
-    """获取系统指标"""
-    return {
-        "agent_metrics": metrics.get_summary(),
-        "tool_call_log": mcp_server.get_call_log(last_n=20),
-    }
 
 
 @app.get("/health")
