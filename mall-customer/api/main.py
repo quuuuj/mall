@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import uuid
 from contextlib import asynccontextmanager
 
@@ -40,7 +41,7 @@ def require_internal_token(
         raise HTTPException(status_code=503, detail="服务间鉴权未配置")
     if credentials is None:
         raise HTTPException(status_code=401, detail="缺少鉴权凭据")
-    if credentials.credentials != INTERNAL_TOKEN:
+    if not secrets.compare_digest(credentials.credentials, INTERNAL_TOKEN):
         raise HTTPException(status_code=403, detail="鉴权凭据无效")
 
 

@@ -25,7 +25,7 @@ public class WebClientConfig {
     @Bean
     public WebClient customerWebClient(WebClient.Builder builder,
                                        @Value("${mall.customer.url:http://localhost:8000}") String customerApiUrl,
-                                       @Value("${mall.customer.token:}") String customerToken) {
+                                       @Value("${mall.customer.token}") String customerToken) {
         return builder
                 .baseUrl(customerApiUrl)
                 .defaultHeader("Authorization", "Bearer " + customerToken)

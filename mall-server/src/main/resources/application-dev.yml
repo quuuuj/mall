@@ -45,3 +45,8 @@ aliyun:
 
 rate-limit:
   enabled: false
+
+mall:
+  customer:
+    # 需与 mall-customer/.env 的 INTERNAL_API_TOKEN 一致
+    token: dev-internal-token
