@@ -4,12 +4,12 @@ FastAPI入口 — 提供REST API + SSE流式响应
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import secrets
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
@@ -19,6 +19,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from agents.supervisor import create_supervisor_graph
+from agents.streaming import ANSWER_STREAM_TAG
+from agents.compliance_checker import StreamingRuleGuard
 from api import sse
 from api.sse import encode_done, encode_error
 from memory.working_memory import WorkingMemory
@@ -113,6 +115,81 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
 
 
+def _final_reply(output: Any) -> str:
+    """从图输出里取末尾 AIMessage 的文本；取不到返回空串。"""
+    from langchain_core.messages import AIMessage
+
+    if not isinstance(output, dict):
+        return ""
+    messages = output.get("messages") or []
+    last = messages[-1] if messages else None
+    if isinstance(last, AIMessage) and isinstance(last.content, str):
+        return last.content
+    return ""
+
+
+def _compliance_failed(output: Any) -> bool:
+    return isinstance(output, dict) and output.get("compliance_passed") is False
+
+
+async def stream_reply(graph_chain: Any, initial_state: dict, config: dict) -> AsyncIterator[str]:
+    """把图执行过程转成 SSE 帧：模型产出即帧发出，末尾补 done。
+
+    - 只有带 answer_stream 标签的 on_chat_model_stream 才转 token，
+      意图判断、查询改写、合规审查等内部调用的中间产出不会漏给用户
+    - 模板话术（工单回复、空召回引导）没有模型流，流结束后整段按块补发
+    - 规则层在每块发出前守门，禁词被分块切开也能拦住
+    - 出口合规判不通过时，草稿已在流中发出无法收回，补发收尾节点的固定话术，
+      让用户知道自己拿到的不是最终答复
+    """
+    guard = StreamingRuleGuard()
+    streamed = False
+
+    def release(piece: str) -> list[str]:
+        safe = guard.feed(piece)
+        return [sse.encode_token(safe)] if safe else []
+
+    try:
+        async for event in graph_chain.astream_events(initial_state, config=config, version="v2"):
+            if guard.violated:
+                break
+            kind = event.get("event")
+            if kind == "on_chat_model_stream" and ANSWER_STREAM_TAG in (event.get("tags") or []):
+                chunk = (event.get("data") or {}).get("chunk")
+                text = getattr(chunk, "text", None)
+                if text:
+                    streamed = True
+                    for frame in release(text):
+                        yield frame
+            elif kind == "on_chain_end" and not event.get("parent_ids"):
+                output = (event.get("data") or {}).get("output")
+                final_text = _final_reply(output)
+                if not final_text or guard.violated:
+                    continue
+                if _compliance_failed(output) or not streamed:
+                    # 无模型流的模板话术，或合规不通过时的固定话术
+                    for frame in sse.token_frames(final_text):
+                        yield frame
+                    streamed = True
+    except Exception:
+        logger.exception("对话处理失败")
+        yield encode_error()
+        yield encode_done()
+        return
+
+    if guard.violated:
+        logger.warning("流式回复命中合规禁词，已中止输出")
+        yield encode_error()
+        yield encode_done()
+        return
+
+    tail = guard.flush()
+    if tail:
+        yield sse.encode_token(tail)
+
+    yield encode_done()
+
+
 @app.post("/api/chat", dependencies=[Depends(require_internal_token)])
 async def chat(request: ChatRequest):
     """主聊天接口 — SSE流式输出（每条 data 为带 type 字段的 JSON）"""
@@ -121,46 +198,21 @@ async def chat(request: ChatRequest):
 
     session_id = request.session_id or str(uuid.uuid4())
 
-    async def event_generator():
-        from langchain_core.messages import AIMessage, HumanMessage
+    from langchain_core.messages import HumanMessage
 
-        initial_state = {
-            "messages": [HumanMessage(content=request.message)],
-            "user_id": request.user_id,
-            "session_id": session_id,
-            "intent": "",
-            "compliance_passed": True,
-            "current_agent": "",
-            "retry_count": 0,
-        }
-
-        config = {"configurable": {"thread_id": session_id}}
-
-        try:
-            result = await graph.ainvoke(initial_state, config=config)
-            # 最终回复即 Agent State 中末尾的 AIMessage（子Agent草稿或合成节点兜底话术）
-            messages = result.get("messages") or []
-            last = messages[-1] if messages else None
-            final_response = (
-                last.content
-                if isinstance(last, AIMessage) and last.content
-                else "系统处理异常，请稍后重试"
-            )
-        except Exception:
-            logger.exception("对话处理失败 session_id=%s", session_id)
-            yield encode_error()
-            yield encode_done()
-            return
-
-        # 模拟打字机流式切块输出（真流式见 SSE 协议工单）
-        for frame in sse.token_frames(final_response):
-            yield frame
-            await asyncio.sleep(0.03)
-
-        yield encode_done()
+    initial_state = {
+        "messages": [HumanMessage(content=request.message)],
+        "user_id": request.user_id,
+        "session_id": session_id,
+        "intent": "",
+        "compliance_passed": True,
+        "current_agent": "",
+        "retry_count": 0,
+    }
+    config = {"configurable": {"thread_id": session_id}}
 
     return StreamingResponse(
-        event_generator(),
+        stream_reply(graph, initial_state, config),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

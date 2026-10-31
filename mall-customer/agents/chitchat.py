@@ -11,6 +11,7 @@ from typing import Any
 from langchain_core.messages import AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
+from agents.streaming import stream_text
 from tracing.otel_config import trace_agent_call
 
 
@@ -42,11 +43,10 @@ class ChitchatAgent:
         if not messages:
             return state
 
-        response = await self.llm.ainvoke(
-            [SystemMessage(content=CHITCHAT_SYSTEM_PROMPT), *messages]
-        )
+        # 用户可见产出：流式生成，API 层按 answer_stream 标签转成 token 帧
+        content = await stream_text(self.llm, [SystemMessage(content=CHITCHAT_SYSTEM_PROMPT), *messages])
 
         return {
             **state,
-            "messages": [AIMessage(content=response.content)],
+            "messages": [AIMessage(content=content)],
         }

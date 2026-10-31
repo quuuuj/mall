@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from memory.long_term_memory import LongTermMemory
+from agents.streaming import stream_text
 from tracing.otel_config import trace_agent_call
 
 
@@ -128,8 +129,8 @@ class KnowledgeRAGAgent:
             )),
         ]
 
-        response = await self.llm.ainvoke(messages)
-        return response.content
+        # 用户可见产出：流式生成，API 层按 answer_stream 标签转成 token 帧
+        return await stream_text(self.llm, messages)
 
     @trace_agent_call("knowledge_rag_process")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:

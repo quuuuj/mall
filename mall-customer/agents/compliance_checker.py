@@ -42,6 +42,51 @@ FORBIDDEN_TERMS = [
     "内部消息", "内幕", "暗箱操作",
 ]
 
+
+class StreamingRuleGuard:
+    """流式输出的规则守门：禁词可能在分块边界被切开，逐块检查会漏。
+
+    做法是只扣住「恰好是某个禁词前缀」的尾部（如刚吐出「保」，可能是「保证收益」的开头），
+    其余文本立刻放行，因此不会牺牲首字延迟。命中禁词时标记违规并丢弃已扣住的片段，
+    调用方看到 violated 后应停止向用户发文本。
+    流末尾必须 flush()，放出被扣住的尾部。
+    """
+
+    def __init__(self, forbidden_terms: list[str] | None = None):
+        self._terms = forbidden_terms if forbidden_terms is not None else FORBIDDEN_TERMS
+        self._pending = ""
+        self.violated = False
+
+    def _prefix_hold(self) -> int:
+        """最长的、同时是某禁词真前缀的 pending 后缀长度。"""
+        longest = min(len(self._pending), max(map(len, self._terms), default=1) - 1)
+        for size in range(longest, 0, -1):
+            suffix = self._pending[-size:]
+            if any(len(term) > size and term.startswith(suffix) for term in self._terms):
+                return size
+        return 0
+
+    def feed(self, chunk: str) -> str:
+        """喂入一块增量文本，返回可以安全发出的部分（可能为空串）。"""
+        if self.violated or not chunk:
+            return ""
+        self._pending += chunk
+        if any(term in self._pending for term in self._terms):
+            self.violated = True
+            self._pending = ""
+            return ""
+        hold = self._prefix_hold()
+        cut = len(self._pending) - hold
+        if cut <= 0:
+            return ""
+        released, self._pending = self._pending[:cut], self._pending[cut:]
+        return released
+
+    def flush(self) -> str:
+        """流结束：放出滞留的尾部（违规时已经清空，返回空串）。"""
+        released, self._pending = self._pending, ""
+        return released
+
 COMPLIANCE_SYSTEM_PROMPT = """你是一个金融合规审查Agent，负责审查客服回复内容的合规性。
 
 审查维度：
