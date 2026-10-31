@@ -245,14 +245,15 @@ const sendMessage = async () => {
 
       for (const line of lines) {
         const trimmed = line.trim()
-        if (trimmed.startsWith('data:')) {
-          const data = trimmed.slice(5).trim()
-          if (data === '[DONE]') {
-            continue
-          }
-          currentStreamingText.value += data
-          scrollToBottom()
+        if (!trimmed.startsWith('data:')) continue
+        // 单通道协议：每条 data 都是带 type 的 JSON
+        let event
+        try {
+          event = JSON.parse(trimmed.slice(5).trim())
+        } catch {
+          continue
         }
+        handleEvent(event)
       }
     }
 
@@ -278,6 +279,25 @@ const sendMessage = async () => {
   } finally {
     loading.value = false
     scrollToBottom()
+  }
+}
+
+const handleEvent = (event) => {
+  switch (event.type) {
+    case 'token':
+      currentStreamingText.value += event.content || ''
+      scrollToBottom()
+      break
+    case 'done':
+      break
+    case 'error':
+      // 服务端已收敛为固定文案，前端原样展示
+      messages.value.push({ type: 'system', content: event.message })
+      scrollToBottom()
+      break
+    default:
+      // ticket / login_required 的渲染由后续工单接入
+      break
   }
 }
 

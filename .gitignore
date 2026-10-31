@@ -98,3 +98,6 @@ __pycache__/
 
 # Git Bash crash dumps
 *.stackdump
+
+# Vector store / knowledge base index (rebuilt from knowledge_base/ on startup)
+mall-customer/vector_store/

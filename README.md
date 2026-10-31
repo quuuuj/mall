@@ -199,10 +199,10 @@ mall/
 │   ├── src/views/                # 页面（首页 / 商品 / 秒杀 / 购物车 / 订单等）
 │   └── src/components/           # 公共组件（客服弹窗 CustomerModal 等）
 └── mall-customer/                # 多 Agent 智能客服（Python FastAPI，端口 8000）
-    ├── agents/                   # LangGraph 编排（Supervisor、RAG、合规审查等）
-    ├── api/                      # FastAPI 入口与 SSE 聊天接口
-    ├── memory/                   # 短期（Redis）与长期（FAISS）记忆
-    ├── mcp/                      # 工具服务
+    ├── agents/                   # LangGraph 编排（Supervisor、知识库 RAG、合规审查等）
+    ├── api/                      # FastAPI 入口与 SSE 协议编码
+    ├── knowledge_base/           # 电商政策知识库（25 篇 markdown，启动时向量化并落盘索引）
+    ├── memory/                   # 短期（Redis checkpoint）与长期（FAISS 向量库）记忆
     └── tracing/                  # OpenTelemetry 全链路追踪
 ```
 

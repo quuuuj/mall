@@ -9,6 +9,7 @@ import com.qiujie.exception.ServiceException;
 import com.qiujie.mapper.MessageMapper;
 import com.qiujie.service.MessageService;
 import com.qiujie.service.SessionService;
+import com.qiujie.util.CustomerSse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -81,21 +82,24 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)
-                .map(chunk -> {
-                    if ("[DONE]".equals(chunk.trim())) {
-                        return "";
+                .mapNotNull(chunk -> {
+                    JSONObject json = parseEvent(chunk);
+                    if (json == null) {
+                        return null;
                     }
-                    try {
-                        JSONObject json = JSON.parseObject(chunk);
-                        if (json != null && json.containsKey("content")) {
-                            String piece = json.getString("content");
+                    String type = json.getString("type");
+                    if (CustomerSse.DONE.equals(type)) {
+                        // done 由 Java 侧统一补在流尾，避免与上游重复
+                        return null;
+                    }
+                    if (CustomerSse.TOKEN.equals(type)) {
+                        String piece = json.getString("content");
+                        if (piece != null) {
                             fullResponse.append(piece);
-                            return piece;
                         }
-                    } catch (Exception ignored) {
                     }
-                    fullResponse.append(chunk);
-                    return chunk;
+                    // ticket / login_required / error 原样中继，由前端按 type 渲染
+                    return json.toJSONString();
                 })
                 .doOnComplete(() -> {
                     // 4. 流传输完成，将完整的回复持久化到 cs_message
@@ -111,5 +115,28 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .doOnError(e -> {
                     log.error("调用智能客服 SSE 失败: sessionId={}", sessionId, e);
                 });
+    }
+
+    /**
+     * 解析智能客服 SSE 的一条 data 载荷。
+     * <p>
+     * 协议为单通道 JSON，按 type 分派；解析失败返回 null 并记录告警，
+     * 不让单个坏帧中断整条流。
+     */
+    private JSONObject parseEvent(String chunk) {
+        if (chunk == null || chunk.isBlank()) {
+            return null;
+        }
+        try {
+            JSONObject json = JSON.parseObject(chunk);
+            if (json == null || json.getString("type") == null) {
+                log.warn("忽略缺少 type 字段的客服事件: {}", chunk);
+                return null;
+            }
+            return json;
+        } catch (Exception e) {
+            log.warn("忽略无法解析的客服事件: {}", chunk);
+            return null;
+        }
     }
 }

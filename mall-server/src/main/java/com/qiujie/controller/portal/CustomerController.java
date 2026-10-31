@@ -7,6 +7,7 @@ import com.qiujie.entity.Message;
 import com.qiujie.entity.Session;
 import com.qiujie.service.MessageService;
 import com.qiujie.service.SessionService;
+import com.qiujie.util.CustomerSse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -63,13 +64,15 @@ public class CustomerController {
         Long sessionId = Long.valueOf(body.get("sessionId").toString());
         String message = body.get("message").toString();
 
+        // 逐帧中继：每帧 data 已是带 type 字段的 JSON（token / ticket / login_required / error / done），
+        // 流尾由服务端补 done。异常收敛为 error + done 固定文案，不透传异常原文。
         return messageService.chat(sessionId, message, userId)
-                .map(content -> ServerSentEvent.<String>builder()
-                        .data(content)
-                        .build())
-                .concatWith(Flux.just(ServerSentEvent.<String>builder()
-                        .event("done")
-                        .data("[DONE]")
-                        .build()));
+                .map(this::sse)
+                .concatWith(Flux.just(sse(CustomerSse.doneEvent())))
+                .onErrorResume(e -> Flux.just(sse(CustomerSse.errorEvent()), sse(CustomerSse.doneEvent())));
+    }
+
+    private ServerSentEvent<String> sse(String data) {
+        return ServerSentEvent.<String>builder().data(data).build();
     }
 }

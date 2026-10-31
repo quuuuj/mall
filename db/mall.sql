@@ -72,6 +72,58 @@ INSERT INTO `cs_session` VALUES (1,1,'你好',0,'2026-10-05 16:46:40','2026-10-0
 /*!40000 ALTER TABLE `cs_session` ENABLE KEYS */;
 UNLOCK TABLES;
 
+
+--
+-- Table structure for table `cs_ticket`
+--
+
+DROP TABLE IF EXISTS `cs_ticket`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_ticket` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '工单ID（内部主键，不对外暴露）',
+  `ticket_no` varchar(32) NOT NULL COMMENT '对外工单号 TK-YYYYMMDD-xxxxxx',
+  `user_id` int NOT NULL COMMENT '诉求所属用户ID',
+  `session_id` bigint NOT NULL COMMENT '触发建单的客服会话ID (cs_session.id)',
+  `category` int NOT NULL COMMENT '类型: 1退款退货 2物流异常 3发票 4投诉建议',
+  `status` int NOT NULL DEFAULT '0' COMMENT '状态: 0待处理 1处理中 2已解决 3已关闭',
+  `priority` int NOT NULL DEFAULT '2' COMMENT '优先级: 1低 2中 3高',
+  `summary` varchar(200) NOT NULL DEFAULT '' COMMENT '一句话摘要',
+  `detail` text COMMENT '结构化字段 JSON',
+  `admin_remark` varchar(500) NOT NULL DEFAULT '' COMMENT '管理员备注',
+  `needs_info` tinyint NOT NULL DEFAULT '0' COMMENT '是否仍缺字段: 0否 1是',
+  `first_response_time` datetime DEFAULT NULL COMMENT '首次响应时间',
+  `resolved_time` datetime DEFAULT NULL COMMENT '标记解决时间',
+  `closed_time` datetime DEFAULT NULL COMMENT '关闭时间',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ticket_no` (`ticket_no`),
+  KEY `idx_user_create` (`user_id`,`create_time`),
+  KEY `idx_status_create` (`status`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服工单表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cs_ticket_log`
+--
+
+DROP TABLE IF EXISTS `cs_ticket_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_ticket_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `ticket_id` bigint NOT NULL COMMENT '关联工单ID (cs_ticket.id)',
+  `operator_id` int NOT NULL COMMENT '操作人用户ID，0 表示系统',
+  `from_status` int DEFAULT NULL COMMENT '变更前状态，建单时为空',
+  `to_status` int NOT NULL COMMENT '变更后状态',
+  `remark` varchar(500) NOT NULL DEFAULT '' COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_ticket_create` (`ticket_id`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服工单状态变更日志表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 --
 -- Table structure for table `oms_cart`
 --
