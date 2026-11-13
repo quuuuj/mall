@@ -18,14 +18,15 @@ from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from agents.supervisor import create_supervisor_graph
-from agents.streaming import ANSWER_STREAM_TAG
-from agents.compliance_checker import StreamingRuleGuard
+from agent.graph import build_graph
+from agent.streaming import ANSWER_STREAM_TAG
+from agent.compliance_checker import StreamingRuleGuard
 from api import sse
 from api.sse import encode_done, encode_error
 from memory.working_memory import WorkingMemory
 from memory.short_term_memory import ShortTermMemory
 from memory.long_term_memory import LongTermMemory
+from tools.mcp_client import McpBackendClient
 from tracing.otel_config import init_tracer
 
 load_dotenv()
@@ -68,7 +69,7 @@ async def lifespan(app: FastAPI):
         otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
     )
 
-    # 短期记忆：Redis 持久化 Agent State，Redis 不可用时自动降级内存
+    # 对话状态持久化（Redis Checkpointer），Redis 不可用时降级为进程内 MemorySaver
     await short_term_memory.setup()
 
     # 知识库：索引已落盘则直接加载，否则从 knowledge_base/ 导入并写盘
@@ -76,9 +77,10 @@ async def lifespan(app: FastAPI):
         loaded = long_term_memory.load_knowledge_base(KNOWLEDGE_BASE_DIR)
         logger.info("知识库已导入 %d 篇文档（目录 %s）", loaded, KNOWLEDGE_BASE_DIR)
 
-    graph = create_supervisor_graph(
+    graph = build_graph(
         working_memory=working_memory,
         long_term_memory=long_term_memory,
+        mcp_client=McpBackendClient(),
         checkpointer=short_term_memory.checkpointer,
     )
 
@@ -141,9 +143,12 @@ async def stream_reply(graph_chain: Any, initial_state: dict, config: dict) -> A
     - 规则层在每块发出前守门，禁词被分块切开也能拦住
     - 出口合规判不通过时，草稿已在流中发出无法收回，补发收尾节点的固定话术，
       让用户知道自己拿到的不是最终答复
+    - 工单卡片（ticket）与登录引导（login_required）在文本之后发，避免用户先看到卡片后看到说明
     """
     guard = StreamingRuleGuard()
     streamed = False
+    card: dict[str, Any] | None = None
+    login_required = False
 
     def release(piece: str) -> list[str]:
         safe = guard.feed(piece)
@@ -163,6 +168,12 @@ async def stream_reply(graph_chain: Any, initial_state: dict, config: dict) -> A
                         yield frame
             elif kind == "on_chain_end" and not event.get("parent_ids"):
                 output = (event.get("data") or {}).get("output")
+                if _compliance_failed(output):
+                    # 草稿已被收尾节点换成固定话术，此时不给卡片，免得卡片和「无法处理」并存
+                    card, login_required = None, False
+                elif isinstance(output, dict):
+                    card = output.get("ticket") or None
+                    login_required = bool(output.get("login_required"))
                 final_text = _final_reply(output)
                 if not final_text or guard.violated:
                     continue
@@ -187,6 +198,11 @@ async def stream_reply(graph_chain: Any, initial_state: dict, config: dict) -> A
     if tail:
         yield sse.encode_token(tail)
 
+    if card:
+        yield sse.encode_event(sse.TICKET, ticket=card)
+    if login_required:
+        yield sse.encode_event(sse.LOGIN_REQUIRED)
+
     yield encode_done()
 
 
@@ -206,8 +222,9 @@ async def chat(request: ChatRequest):
         "session_id": session_id,
         "intent": "",
         "compliance_passed": True,
-        "current_agent": "",
-        "retry_count": 0,
+        # 本轮产出标记，由 trim_history 统一清零后由 ticket_handler 按需写入
+        "ticket": None,
+        "login_required": False,
     }
     config = {"configurable": {"thread_id": session_id}}
 

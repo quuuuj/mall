@@ -1,5 +1,4 @@
-"""
-知识检索Agent — 电商政策知识库问答（RAG）
+"""knowledge_rag — 电商政策知识库问答（RAG）。
 
 流程：Query 改写 → 向量检索 → 重排 → 生成回答。
 检索为空时不给编造内容，而是引导用户从四类工单中选择一项提交。
@@ -12,10 +11,9 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
+from agent.streaming import stream_text
 from memory.long_term_memory import LongTermMemory
-from agents.streaming import stream_text
 from tracing.otel_config import trace_agent_call
-
 
 # 引导建单的四类工单；阈值拦下的空召回与模型判定「文档不足」共用同一份话术
 TICKET_GUIDANCE = """- 退款退货
@@ -54,8 +52,8 @@ EMPTY_RECALL_REPLY = (
 )
 
 
-class KnowledgeRAGAgent:
-    """知识检索Agent — 实现完整 RAG 流程"""
+class KnowledgeRagAgent:
+    """知识检索节点 — 实现完整 RAG 流程"""
 
     def __init__(self, llm: ChatOpenAI, long_term_memory: LongTermMemory | None = None):
         self.llm = llm
@@ -132,12 +130,12 @@ class KnowledgeRAGAgent:
         # 用户可见产出：流式生成，API 层按 answer_stream 标签转成 token 帧
         return await stream_text(self.llm, messages)
 
-    @trace_agent_call("knowledge_rag_process")
+    @trace_agent_call("knowledge_rag")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:
         """完整 RAG 流程（作为 Graph 节点）"""
         messages = state.get("messages", [])
         if not messages:
-            return state
+            return {}
 
         original_query = messages[-1].content
         rewritten_query = await self.rewrite_query(original_query)
@@ -145,9 +143,9 @@ class KnowledgeRAGAgent:
 
         if not raw_docs:
             # 空召回不调生成模型，直接用引导话术，避免编造
-            return {**state, "messages": [AIMessage(content=EMPTY_RECALL_REPLY)]}
+            return {"messages": [AIMessage(content=EMPTY_RECALL_REPLY)]}
 
         reranked_docs = await self.rerank_documents(rewritten_query, raw_docs, top_k=3)
         answer = await self.generate_answer(original_query, reranked_docs)
 
-        return {**state, "messages": [AIMessage(content=answer)]}
+        return {"messages": [AIMessage(content=answer)]}

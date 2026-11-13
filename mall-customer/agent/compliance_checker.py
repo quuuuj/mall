@@ -1,27 +1,34 @@
-"""
-合规审查Agent — 金融/电商场景合规检查
-负责对所有Agent的回复进行合规审查，包括：
-- 敏感词检测
-- PII（个人身份信息）保护
-- 金融合规用语检查
-- 越权承诺检测
+"""compliance_checker — 出口合规审查节点。
+
+审查子节点本轮写入的草稿回答：
+- 规则层先查禁词与 PII（毫秒级，不依赖模型）
+- 通过后再交给模型做深度审查
+- 不通过时撤回草稿并换成固定话术，不让违规内容留在会话历史里
 """
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langgraph.graph.message import RemoveMessage
 
 from tracing.otel_config import trace_agent_call
+
+# 合规不通过时对用户的固定话术；只如实说明，不声称已建单
+BLOCKED_REPLY = "抱歉，你的请求暂时无法在线处理，请联系人工客服进一步沟通。"
+# 本轮没有子节点产出时的兜底话术
+FALLBACK_REPLY = "抱歉，暂时无法处理您的请求，请稍后重试。"
 
 
 @dataclass
 class ComplianceResult:
     """合规审查结果"""
+
     passed: bool
     risk_level: str  # low, medium, high, critical
     violations: list[str] = field(default_factory=list)
@@ -37,10 +44,16 @@ SENSITIVE_PATTERNS = {
 }
 
 FORBIDDEN_TERMS = [
-    "保证收益", "稳赚不赔", "零风险", "保本保息",
-    "最高收益", "预期收益率", "承诺回报",
-    "内部消息", "内幕", "暗箱操作",
+    # 绝对化用语（广告法）
+    "全网最低", "史上最低", "绝对正品", "百分百正品", "假一赔万",
+    "永久保修", "终身免费", "永不涨价", "保证最便宜",
+    # 未经授权的赔付承诺
+    "保证退款", "一定赔偿", "全额补偿",
+    # 引导站外交易
+    "私下转账", "加我微信", "线下交易", "绕过平台",
 ]
+
+RISK_PRIORITY = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
 
 class StreamingRuleGuard:
@@ -87,16 +100,18 @@ class StreamingRuleGuard:
         released, self._pending = self._pending, ""
         return released
 
-COMPLIANCE_SYSTEM_PROMPT = """你是一个金融合规审查Agent，负责审查客服回复内容的合规性。
+
+COMPLIANCE_SYSTEM_PROMPT = """你是一个电商客服回复的合规审查Agent，负责判断客服草稿能否直接发给用户。
 
 审查维度：
-1. 是否包含违规金融用语（如"保证收益"、"零风险"等）
-2. 是否泄露用户PII信息（手机号、身份证号、银行卡号）
-3. 是否存在越权承诺（如擅自承诺退款/赔偿金额）
-4. 是否符合金融监管要求（风险提示、免责声明）
-5. 是否包含歧视性、侮辱性内容
+1. 绝对化用语与虚假承诺（如"全网最低价"、"绝对正品"、"永久保修"）
+2. 未经授权的赔付承诺（擅自承诺退款金额、赔偿标准、补偿方案）
+3. 引导站外交易（私下转账、加私人微信、绕过平台下单）
+4. 泄露用户 PII 或他人订单信息（手机号、身份证号、银行卡号、他人收货地址）
+5. 与平台规则不符的臆造（编造不存在的政策、时效、运费规则）
+6. 歧视性、侮辱性内容
 
-请以JSON格式返回审查结果：
+请只返回 JSON，不要输出任何其他内容：
 {
     "passed": true/false,
     "risk_level": "low|medium|high|critical",
@@ -107,7 +122,7 @@ COMPLIANCE_SYSTEM_PROMPT = """你是一个金融合规审查Agent，负责审查
 
 
 class ComplianceCheckerAgent:
-    """合规审查Agent"""
+    """合规审查节点"""
 
     def __init__(self, llm: ChatOpenAI):
         self.llm = llm
@@ -118,7 +133,7 @@ class ComplianceCheckerAgent:
 
         for term in FORBIDDEN_TERMS:
             if term in content:
-                violations.append(f"包含违规金融用语: '{term}'")
+                violations.append(f"包含禁用表述: '{term}'")
 
         for pii_type, pattern in SENSITIVE_PATTERNS.items():
             if re.search(pattern, content):
@@ -149,15 +164,10 @@ class ComplianceCheckerAgent:
         sanitized = self._mask_pii(content)
 
         if not violations:
-            return ComplianceResult(
-                passed=True,
-                risk_level="low",
-                sanitized_content=sanitized,
-            )
+            return ComplianceResult(passed=True, risk_level="low", sanitized_content=sanitized)
 
         has_pii = any("PII" in v for v in violations)
-        has_forbidden = any("违规金融用语" in v for v in violations)
-
+        has_forbidden = any("禁用表述" in v for v in violations)
         if has_pii and has_forbidden:
             risk_level = "critical"
         elif has_pii or has_forbidden:
@@ -172,75 +182,89 @@ class ComplianceCheckerAgent:
             sanitized_content=sanitized,
         )
 
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """模型偶尔会把 JSON 包在 ```json 代码块里，剥掉围栏再解析。"""
+        stripped = text.strip()
+        if not stripped.startswith("```"):
+            return stripped
+        lines = stripped.splitlines()
+        if len(lines) < 2:
+            return stripped
+        lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        return "\n".join(lines).strip()
+
     @trace_agent_call("compliance_llm_check")
     async def llm_check(self, content: str) -> ComplianceResult:
-        """LLM深度合规审查（处理规则引擎无法覆盖的场景）"""
+        """LLM深度合规审查（处理规则引擎无法覆盖的场景）
+
+        解析失败一律按不通过处理（fail-closed）：模型输出不可信时不应放行草稿。
+        """
         messages = [
             SystemMessage(content=COMPLIANCE_SYSTEM_PROMPT),
             HumanMessage(content=f"请审查以下客服回复内容的合规性：\n\n{content}"),
         ]
 
         response = await self.llm.ainvoke(messages)
-
-        import json
         try:
-            result = json.loads(response.content)
-        except json.JSONDecodeError:
-            return ComplianceResult(passed=True, risk_level="low", sanitized_content=content)
+            parsed = json.loads(self._strip_code_fence(str(response.content)))
+            if not isinstance(parsed, dict):
+                raise ValueError("审查结果不是 JSON 对象")
+        except (json.JSONDecodeError, ValueError):
+            return ComplianceResult(
+                passed=False,
+                risk_level="high",
+                violations=["合规审查结果无法解析，按不通过处理"],
+                sanitized_content=self._mask_pii(content),
+            )
 
         return ComplianceResult(
-            passed=result.get("passed", True),
-            risk_level=result.get("risk_level", "low"),
-            violations=result.get("violations", []),
-            suggestions=result.get("suggestions", []),
+            passed=parsed.get("passed") is True,
+            risk_level=parsed.get("risk_level", "low"),
+            violations=parsed.get("violations", []),
+            suggestions=parsed.get("suggestions", []),
             sanitized_content=self._mask_pii(content),
         )
 
     @trace_agent_call("compliance_full_check")
     async def full_check(self, content: str) -> ComplianceResult:
-        """
-        两阶段合规审查：
-        1. 规则引擎快速检查（毫秒级）
-        2. 若规则通过，再进行LLM深度审查
-        """
+        """两阶段合规审查：规则引擎快速检查 → 通过后再做 LLM 深度审查"""
         rule_result = await self.rule_check(content)
-
         if not rule_result.passed and rule_result.risk_level in ("high", "critical"):
             return rule_result
 
         llm_result = await self.llm_check(content)
 
-        all_violations = rule_result.violations + llm_result.violations
-        final_passed = rule_result.passed and llm_result.passed
-
-        risk_priority = {"low": 0, "medium": 1, "high": 2, "critical": 3}
-        final_risk = max(
-            rule_result.risk_level, llm_result.risk_level,
-            key=lambda r: risk_priority.get(r, 0),
-        )
-
         return ComplianceResult(
-            passed=final_passed,
-            risk_level=final_risk,
-            violations=all_violations,
+            passed=rule_result.passed and llm_result.passed,
+            risk_level=max(
+                rule_result.risk_level, llm_result.risk_level,
+                key=lambda r: RISK_PRIORITY.get(r, 0),
+            ),
+            violations=rule_result.violations + llm_result.violations,
             suggestions=llm_result.suggestions,
             sanitized_content=rule_result.sanitized_content,
         )
 
-    @trace_agent_call("compliance_process")
+    @trace_agent_call("compliance_checker")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:
-        """作为Graph节点处理状态：审查子Agent本轮写入 messages 的回答"""
+        """作为Graph节点处理状态：审查并（必要时）替换本轮草稿"""
         messages = state.get("messages", [])
         last = messages[-1] if messages else None
 
-        # 末尾 AIMessage 即子Agent本轮的草稿回答；
-        # 不存在草稿（如直达合规审查）时跳过审查
+        # 本轮没有子节点产出（如直达合规审查）：补一条兜底话术
         if not isinstance(last, AIMessage) or not last.content:
-            return {**state, "compliance_passed": True}
+            return {"messages": [AIMessage(content=FALLBACK_REPLY)], "compliance_passed": True}
 
-        compliance_result = await self.full_check(last.content)
+        result = await self.full_check(last.content)
+        if result.passed:
+            return {"compliance_passed": True}
 
-        return {
-            **state,
-            "compliance_passed": compliance_result.passed,
-        }
+        # 撤回草稿，避免违规内容留在会话历史里
+        updates: list[Any] = []
+        if last.id:
+            updates.append(RemoveMessage(id=last.id))
+        updates.append(AIMessage(content=BLOCKED_REPLY))
+        return {"messages": updates, "compliance_passed": False}

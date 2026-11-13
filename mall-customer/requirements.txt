@@ -13,6 +13,8 @@ opentelemetry-api>=1.29.0
 opentelemetry-sdk>=1.29.0
 opentelemetry-exporter-otlp>=1.29.0
 opentelemetry-instrumentation-fastapi>=0.50b0
+# MCP 客户端：Agent 经 /mcp 调用 mall-server 的业务工具
+mcp>=2.0.0
 httpx>=0.28.0
 python-dotenv>=1.0.0
 tiktoken>=0.8.0

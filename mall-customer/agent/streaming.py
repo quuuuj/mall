@@ -1,5 +1,4 @@
-"""
-流式输出约定
+"""流式输出工具 — 把模型产出直接给用户看的节点统一走这里。
 
 节点里凡是「把模型产出直接给用户看」的调用，都用 ``stream_text`` 而非 ainvoke：
 它给这次调用打上 ANSWER_STREAM_TAG，API 层只把带该标签的 on_chat_model_stream

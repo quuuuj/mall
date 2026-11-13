@@ -1,0 +1,16 @@
+# 构建镜像时不带上本地密钥与测试产物
+# .env 由运行时环境变量注入，不能烘进镜像
+.env
+.env.*
+!.env.example
+tests/
+pytest.ini
+requirements-test.txt
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.iml
+tmp_mall_customer.log
+# 向量索引在容器首次启动时由 knowledge_base/ 重建，并挂载到宿主持久化
+vector_store/

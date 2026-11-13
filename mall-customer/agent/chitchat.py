@@ -1,7 +1,7 @@
-"""
-闲聊Agent — 寒暄与无关消息处理
-负责处理打招呼、感谢、问候等与业务无关的闲聊消息，
-直接生成友好回复，不触发知识库检索，避免无意义的向量查询。
+"""chitchat — 寒暄与无关消息处理。
+
+处理打招呼、感谢、问候等与业务无关的闲聊消息，直接生成友好回复，
+不触发知识库检索，避免无意义的向量查询。
 """
 
 from __future__ import annotations
@@ -11,9 +11,8 @@ from typing import Any
 from langchain_core.messages import AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
-from agents.streaming import stream_text
+from agent.streaming import stream_text
 from tracing.otel_config import trace_agent_call
-
 
 CHITCHAT_SYSTEM_PROMPT = """你是一个友好的电商客服，负责处理用户的寒暄与闲聊。
 
@@ -31,22 +30,19 @@ CHITCHAT_SYSTEM_PROMPT = """你是一个友好的电商客服，负责处理用�
 
 
 class ChitchatAgent:
-    """闲聊Agent - 处理寒暄，跳过知识库检索"""
+    """闲聊节点 - 处理寒暄，跳过知识库检索"""
 
     def __init__(self, llm: ChatOpenAI):
         self.llm = llm
 
-    @trace_agent_call("chitchat_process")
+    @trace_agent_call("chitchat")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:
         """作为Graph节点处理状态：基于对话历史直接生成闲聊回复"""
         messages = state.get("messages", [])
         if not messages:
-            return state
+            return {}
 
         # 用户可见产出：流式生成，API 层按 answer_stream 标签转成 token 帧
         content = await stream_text(self.llm, [SystemMessage(content=CHITCHAT_SYSTEM_PROMPT), *messages])
 
-        return {
-            **state,
-            "messages": [AIMessage(content=content)],
-        }
+        return {"messages": [AIMessage(content=content)]}
