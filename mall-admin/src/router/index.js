@@ -17,7 +17,8 @@ const routes = [
       { path: 'category', name: 'category', component: () => import('@/views/Category.vue') },
       { path: 'product', name: 'product', component: () => import('@/views/Product.vue') },
       { path: 'order', name: 'order', component: () => import('@/views/Order.vue') },
-      { path: 'seckill', name: 'seckill', component: () => import('@/views/seckill/Seckill.vue') }
+      { path: 'seckill', name: 'seckill', component: () => import('@/views/seckill/Seckill.vue') },
+      { path: 'ticket', name: 'ticket', component: () => import('@/views/Ticket.vue') }
     ]
   },
   { path: '/:pathMatch(.*)*', component: () => import('@/views/NotFound.vue') }

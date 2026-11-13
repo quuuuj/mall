@@ -35,7 +35,8 @@ const allMenus = [
   { name: '分类管理', path: '/category', icon: 'Grid', role: 1 },
   { name: '商品管理', path: '/product', icon: 'Goods', role: 1 },
   { name: '订单管理', path: '/order', icon: 'Document', role: 1 },
-  { name: '秒杀管理', path: '/seckill', icon: 'Lightning', role: 1 }
+  { name: '秒杀管理', path: '/seckill', icon: 'Lightning', role: 1 },
+  { name: '工单管理', path: '/ticket', icon: 'Tickets', role: 1 }
 ]
 
 const route = useRoute()

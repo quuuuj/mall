@@ -29,10 +29,38 @@
         <div
           v-for="(msg, index) in messages"
           :key="index"
-          :class="['row', msg.type === 'user' ? 'u' : 'b']"
+          :class="['row', msg.type === 'user' ? 'u' : msg.type === 'system' ? 'sys' : 'b']"
         >
-          <div v-if="msg.type !== 'user'" class="av">AI</div>
-          <div class="bb">{{ msg.content }}</div>
+          <div v-if="msg.type !== 'user' && msg.type !== 'system'" class="av">AI</div>
+
+          <!-- 工单卡片：工单号、类型、状态、提交时间 -->
+          <div v-if="msg.type === 'ticket'" class="tcard">
+            <div class="tcard-hd">
+              <span class="tcard-title">工单已提交</span>
+              <span class="tcard-no">{{ msg.ticket.ticketNo }}</span>
+            </div>
+            <dl class="tcard-body">
+              <div v-if="msg.ticket.category">
+                <dt>类型</dt>
+                <dd>{{ msg.ticket.category }}</dd>
+              </div>
+              <div v-if="msg.ticket.status">
+                <dt>状态</dt>
+                <dd>{{ msg.ticket.status }}</dd>
+              </div>
+              <div v-if="msg.ticket.createTime">
+                <dt>提交时间</dt>
+                <dd>{{ msg.ticket.createTime }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- 需登录办理：说明文本已在气泡里，这里只补登录入口 -->
+          <button v-else-if="msg.type === 'login_required'" class="lcard-btn" @click="goLogin">
+            去登录
+          </button>
+
+          <div v-else class="bb">{{ msg.content }}</div>
         </div>
 
         <!-- 流式输出中的回复 -->
@@ -40,8 +68,8 @@
           <div class="av">AI</div>
           <div class="bb streaming">{{ currentStreamingText }}</div>
         </div>
-        <!-- 思考中 -->
-        <div v-else-if="loading" class="row b">
+        <!-- 思考中：卡片/登录引导已落地时不再显示，免得卡片后面又冒出打字动画 -->
+        <div v-else-if="loading && !tailRendered" class="row b">
           <div class="av">AI</div>
           <div class="bb">
             <span class="dots"><span></span><span></span><span></span></span>
@@ -97,7 +125,8 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { Minus, Promotion, ChatDotRound } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCustomerSessions, createCustomerSession, deleteCustomerSession, listCustomerMessages } from '@/api/customer'
@@ -112,7 +141,20 @@ const loading = ref(false)
 const currentStreamingText = ref('')
 const msgListRef = ref(null)
 
+// 本条回复的收尾已经落地（卡片或登录引导）时，不再补打字动画
+const tailRendered = computed(() => {
+  const last = messages.value[messages.value.length - 1]
+  return last?.type === 'ticket' || last?.type === 'login_required'
+})
+
 const quickChips = ['查订单', '问物流', '退换货', '优惠券']
+
+const router = useRouter()
+
+const goLogin = () => {
+  visible.value = false
+  router.push('/login')
+}
 
 const open = async () => {
   visible.value = true
@@ -203,6 +245,16 @@ const quickAsk = async (text) => {
   sendMessage()
 }
 
+// 把已流式输出的文本落成一条 assistant 消息（没有内容时什么也不做）
+const flushStreamingText = () => {
+  if (!currentStreamingText.value) return
+  messages.value.push({
+    type: 'assistant',
+    content: currentStreamingText.value
+  })
+  currentStreamingText.value = ''
+}
+
 const sendMessage = async () => {
   const text = inputMessage.value.trim()
   if (!text || loading.value || !currentSessionId.value) return
@@ -257,13 +309,8 @@ const sendMessage = async () => {
       }
     }
 
-    if (currentStreamingText.value) {
-      messages.value.push({
-        type: 'assistant',
-        content: currentStreamingText.value
-      })
-      currentStreamingText.value = ''
-    }
+    // 流式文本落成一条普通消息；卡片、登录引导要插在它后面
+    flushStreamingText()
 
     // 若会话标题为“新对话”，更新本地会话列表标题
     const s = sessions.value.find(item => item.id === currentSessionId.value)
@@ -295,8 +342,20 @@ const handleEvent = (event) => {
       messages.value.push({ type: 'system', content: event.message })
       scrollToBottom()
       break
+    case 'ticket':
+      // 卡片跟在说明文本之后：先把已流式的这段话落成一条消息，再插卡片
+      flushStreamingText()
+      if (event.ticket) {
+        messages.value.push({ type: 'ticket', ticket: event.ticket })
+        scrollToBottom()
+      }
+      break
+    case 'login_required':
+      flushStreamingText()
+      messages.value.push({ type: 'login_required' })
+      scrollToBottom()
+      break
     default:
-      // ticket / login_required 的渲染由后续工单接入
       break
   }
 }
@@ -429,6 +488,22 @@ defineExpose({
 
 .row { display: flex; gap: 9px; margin-bottom: 15px; }
 .row.u { flex-direction: row-reverse; }
+/* 系统通知：工单状态变化等平台提示，居中灰底、不带头像，与 AI 回复区分开 */
+.row.sys { justify-content: center; }
+.row.sys .bb,
+.row.sys .sys-tip {
+  max-width: 88%;
+  margin: 0 auto;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #f3f1ec;
+  color: #8a8478;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .row.b .av {
   width: 30px;
   height: 30px;
@@ -461,6 +536,55 @@ defineExpose({
   color: #A10000;
   animation: cs-blink 1s infinite;
 }
+
+/* 工单卡片 */
+.tcard {
+  max-width: 78%;
+  border: 1px solid #e7e3da;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.tcard-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #fdf1f0;
+  border-bottom: 1px solid #f3e2df;
+}
+.tcard-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #A10000;
+  flex-shrink: 0;
+}
+.tcard-no {
+  font-size: 11.5px;
+  color: #6f6a5c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tcard-body { margin: 0; padding: 9px 12px 10px; }
+.tcard-body > div { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.8; }
+.tcard-body dt { width: 56px; flex-shrink: 0; color: #9a9487; }
+.tcard-body dd { margin: 0; color: #33302a; word-break: break-all; }
+
+/* 需登录办理的入口 */
+.lcard-btn {
+  align-self: flex-start;
+  border: 1px solid #A10000;
+  border-radius: 14px;
+  background: transparent;
+  color: #A10000;
+  font: 600 12px/1 inherit;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.lcard-btn:hover { background: #A10000; color: #fff; }
+
 @keyframes cs-blink { 50% { opacity: 0; } }
 .dots span {
   display: inline-block;
