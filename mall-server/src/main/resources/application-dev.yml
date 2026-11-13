@@ -15,13 +15,13 @@ spring:
   autoconfigure:
     exclude: []
   datasource:
-    url: jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3307/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
       password: 123456
       database: 0
   rabbitmq:

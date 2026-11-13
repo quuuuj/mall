@@ -21,6 +21,18 @@ public interface OrderService extends IService<Order> {
 
     Order detail(Integer userId, Integer id);
 
+    /**
+     * 按订单号查询当前用户自己的订单（智能客服只读工具使用）。
+     * <p>
+     * 归属校验在 SQL 层完成：订单不属于该用户时与不存在同样处理，不泄露他人订单是否存在。
+     */
+    Order detailByOrderSn(Integer userId, String orderSn);
+
+    /**
+     * 查询当前用户最近的若干订单（按创建时间倒序）。
+     */
+    List<Order> listRecent(Integer userId, int limit);
+
     void delete(Integer userId, Integer id);
 
     IPage<Order> list(Integer current, Integer size, String orderSn, String userName, String status,

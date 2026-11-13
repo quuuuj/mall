@@ -35,8 +35,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         "/actuator/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
-                        // 内部命名空间：不走登录态，由 InternalTokenInterceptor 的共享密钥鉴权
-                        "/internal/**"
+                        // MCP 工具端点：不走登录态，由 McpTokenInterceptor 的共享密钥鉴权
+                        "/mcp"
                 );
     }
 }

@@ -1,9 +1,9 @@
 package com.qiujie.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.qiujie.enums.CsTicketCategoryEnum;
-import com.qiujie.enums.CsTicketPriorityEnum;
-import com.qiujie.enums.CsTicketStatusEnum;
+import com.qiujie.enums.TicketCategoryEnum;
+import com.qiujie.enums.TicketPriorityEnum;
+import com.qiujie.enums.TicketStatusEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Data
 @Accessors(chain = true)
 @TableName("cs_ticket")
-public class CsTicket {
+public class Ticket {
 
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
@@ -41,13 +41,13 @@ public class CsTicket {
     private Long sessionId;
 
     @TableField("category")
-    private CsTicketCategoryEnum category;
+    private TicketCategoryEnum category;
 
     @TableField("status")
-    private CsTicketStatusEnum status;
+    private TicketStatusEnum status;
 
     @TableField("priority")
-    private CsTicketPriorityEnum priority;
+    private TicketPriorityEnum priority;
 
     /**
      * 一句话摘要

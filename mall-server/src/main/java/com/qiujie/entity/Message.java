@@ -18,7 +18,9 @@ public class Message {
     private Long sessionId;
 
     /**
-     * 发送方类型: user(用户) / assistant(客服)
+     * 发送方类型: user(用户) / assistant(客服) / system(系统通知)
+     * <p>
+     * system 用于工单状态变更等平台侧提示，由服务端写入，前端居中灰底渲染、不带头像。
      */
     @TableField("type")
     private String type;

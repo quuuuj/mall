@@ -1,7 +1,7 @@
 package com.qiujie.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.qiujie.enums.CsTicketStatusEnum;
+import com.qiujie.enums.TicketStatusEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Data
 @Accessors(chain = true)
 @TableName("cs_ticket_log")
-public class CsTicketLog {
+public class TicketLog {
 
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
@@ -36,10 +36,10 @@ public class CsTicketLog {
      * 变更前状态；建单时为 null
      */
     @TableField("from_status")
-    private CsTicketStatusEnum fromStatus;
+    private TicketStatusEnum fromStatus;
 
     @TableField("to_status")
-    private CsTicketStatusEnum toStatus;
+    private TicketStatusEnum toStatus;
 
     @TableField("remark")
     private String remark;

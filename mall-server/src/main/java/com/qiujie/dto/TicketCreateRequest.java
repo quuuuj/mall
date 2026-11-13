@@ -13,7 +13,7 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "内部建单请求")
-public class CsTicketCreateRequest {
+public class TicketCreateRequest {
 
     @NotNull(message = "用户 ID 不能为空")
     @Schema(description = "诉求所属用户 ID")

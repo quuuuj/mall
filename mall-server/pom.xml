@@ -38,6 +38,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
+            <!-- Java MCP SDK：暴露 /mcp，将建单等业务操作封装为 MCP 工具供 mall-customer 调用 -->
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-spring-webmvc</artifactId>
+            <version>0.14.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>

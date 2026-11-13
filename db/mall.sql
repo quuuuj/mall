@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `cs_message`;
 CREATE TABLE `cs_message` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '消息ID',
   `session_id` bigint NOT NULL COMMENT '关联会话ID (cs_session.id)',
-  `type` varchar(16) NOT NULL COMMENT '发送方类型: user(用户) / assistant(客服)',
+  `type` varchar(16) NOT NULL COMMENT '发送方类型: user(用户) / assistant(客服) / system(系统通知)',
   `content` text NOT NULL COMMENT '消息文本内容',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
   PRIMARY KEY (`id`),

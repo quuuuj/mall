@@ -12,7 +12,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum CsTicketCategoryEnum implements BaseEnum<Integer> {
+public enum TicketCategoryEnum implements BaseEnum<Integer> {
 
     REFUND_RETURN(1, "退款退货"),
     LOGISTICS(2, "物流异常"),
@@ -24,8 +24,8 @@ public enum CsTicketCategoryEnum implements BaseEnum<Integer> {
     private final Integer code;
     private final String message;
 
-    public static CsTicketCategoryEnum of(Integer code) {
-        for (CsTicketCategoryEnum value : values()) {
+    public static TicketCategoryEnum of(Integer code) {
+        for (TicketCategoryEnum value : values()) {
             if (value.code.equals(code)) {
                 return value;
             }

@@ -35,6 +35,9 @@ import java.util.stream.Collectors;
 @Service
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
 
+    /** 「查我最近的订单」单次最多返回条数，防止 Agent 一次拉走全部订单 */
+    private static final int MAX_RECENT_ORDERS = 10;
+
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final CartMapper cartMapper;
@@ -194,6 +197,42 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
         }
         return order;
+    }
+
+    @Override
+    public Order detailByOrderSn(Integer userId, String orderSn) {
+        if (userId == null || orderSn == null || orderSn.isBlank()) {
+            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+        }
+        Order order = orderMapper.selectOne(com.baomidou.mybatisplus.core.toolkit.Wrappers.<Order>lambdaQuery()
+                .eq(Order::getUserId, userId)
+                .eq(Order::getOrderSn, orderSn.trim()));
+        if (order == null) {
+            // 归属不符与不存在同样处理，不泄露他人订单是否存在
+            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+        }
+        order.setItems(loadItems(order.getId()));
+        return order;
+    }
+
+    @Override
+    public List<Order> listRecent(Integer userId, int limit) {
+        if (userId == null) {
+            return List.of();
+        }
+        int size = Math.min(Math.max(limit, 1), MAX_RECENT_ORDERS);
+        List<Order> orders = orderMapper.selectList(com.baomidou.mybatisplus.core.toolkit.Wrappers.<Order>lambdaQuery()
+                .eq(Order::getUserId, userId)
+                .orderByDesc(Order::getCreateTime)
+                .last("LIMIT " + size));
+        orders.forEach(order -> order.setItems(loadItems(order.getId())));
+        return orders;
+    }
+
+    private List<OrderItem> loadItems(Integer orderId) {
+        return orderItemMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.<OrderItem>lambdaQuery()
+                        .eq(OrderItem::getOrderId, orderId));
     }
 
     public void delete(Integer userId, Integer id) {

@@ -12,7 +12,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum CsTicketPriorityEnum implements BaseEnum<Integer> {
+public enum TicketPriorityEnum implements BaseEnum<Integer> {
 
     LOW(1, "低"),
     MEDIUM(2, "中"),
@@ -23,8 +23,8 @@ public enum CsTicketPriorityEnum implements BaseEnum<Integer> {
     private final Integer code;
     private final String message;
 
-    public static CsTicketPriorityEnum of(Integer code) {
-        for (CsTicketPriorityEnum value : values()) {
+    public static TicketPriorityEnum of(Integer code) {
+        for (TicketPriorityEnum value : values()) {
             if (value.code.equals(code)) {
                 return value;
             }

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "内部建单响应")
-public class CsTicketCreateResponse {
+public class TicketCreateResponse {
 
     @Schema(description = "工单号，格式 TK-YYYYMMDD-xxxxxx")
     private String ticketNo;
