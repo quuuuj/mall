@@ -45,12 +45,8 @@ img/product/
 docker/deploy/
 docker/build/
 
-# Documentation (not version controlled, except notes)
-docs/*
-!docs/note/
-docs/note/*
-!docs/note/*.md
-docs/note/CLAUDE.md
+# Documentation (not version controlled)
+docs/
 
 # Knowledge graph cache
 .understand-anything/
