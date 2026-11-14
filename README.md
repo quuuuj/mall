@@ -26,7 +26,7 @@
 ## 核心亮点
 
 - ⚡ **秒杀高并发方案**：Redis Lua 脚本原子扣减库存防超卖；RabbitMQ 消息削峰异步下单；消费失败自动重试（最多 3 次），超限回滚库存；用户级防重与消费幂等
-- 🤖 **多 Agent 智能客服**：基于 LangGraph 编排 Supervisor 路由、知识库 RAG 与工单处理 Agent，合规审查兜底；全链路 SSE 流式响应，会话持久化与历史上下文管理
+- 🤖 **多 Agent 智能客服**：基于 LangGraph 编排 Supervisor 路由、知识库 RAG、订单只读查询与工单处理 Agent，出口合规审查兜底；Python 经 MCP 调用后端工具，工单落库并回流会话；全链路 SSE 流式响应，会话持久化与历史上下文管理
 - ⏰ **订单超时取消双保险**：RabbitMQ 延迟队列（TTL 10 分钟）到期自动取消订单并恢复库存，前端倒计时轮询兜底
 - 🔍 **Elasticsearch 商品搜索**：商品文档同步 + 定时增量同步任务，关键词/分类检索
 - 🔐 **认证与安全**：Sa-Token 双端登录态隔离、同端互踢（同账号新登录踢掉旧会话）；`@RateLimit` 注解 + Redis 滑动窗口限流；Redisson 分布式锁；布隆过滤器防缓存穿透
@@ -199,10 +199,12 @@ mall/
 │   ├── src/views/                # 页面（首页 / 商品 / 秒杀 / 购物车 / 订单等）
 │   └── src/components/           # 公共组件（客服弹窗 CustomerModal 等）
 └── mall-customer/                # 多 Agent 智能客服（Python FastAPI，端口 8000）
-    ├── agents/                   # LangGraph 编排（Supervisor、知识库 RAG、合规审查等）
+    ├── agent/                    # LangGraph 工作流：节点文件与节点名同名，graph.py 负责编排
     ├── api/                      # FastAPI 入口与 SSE 协议编码
     ├── knowledge_base/           # 电商政策知识库（25 篇 markdown，启动时向量化并落盘索引）
-    ├── memory/                   # 短期（Redis checkpoint）与长期（FAISS 向量库）记忆
+    ├── eval/                     # RAG 检索评测（42 条用例，hit@3 与空召回准确率）
+    ├── memory/                   # 工作记忆、短期（Redis checkpoint）与长期（FAISS 向量库）记忆
+    ├── tools/                    # MCP 客户端（建单、订单只读查询经 /mcp 工具调用）
     └── tracing/                  # OpenTelemetry 全链路追踪
 ```
 
