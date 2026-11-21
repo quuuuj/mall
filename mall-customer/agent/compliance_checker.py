@@ -43,6 +43,12 @@ SENSITIVE_PATTERNS = {
     "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
 }
 
+# 订单号是 22 位（yyyyMMddHHmmss + 雪花后 8 位），长于任何 PII 类型。
+# 不先剔除的话，一段订单号会同时命中 phone / id_card / bank_card 三条正则，
+# 订单查询的回答会在出口被判成 PII 泄露。二十位以上的纯数字不可能是 PII，
+# 按这个长度阈值剥离比按订单号格式匹配更稳。
+BUSINESS_ID_PATTERN = re.compile(r"\d{20,}")
+
 FORBIDDEN_TERMS = [
     # 绝对化用语（广告法）
     "全网最低", "史上最低", "绝对正品", "百分百正品", "假一赔万",
@@ -111,6 +117,8 @@ COMPLIANCE_SYSTEM_PROMPT = """你是一个电商客服回复的合规审查Agent
 5. 与平台规则不符的臆造（编造不存在的政策、时效、运费规则）
 6. 歧视性、侮辱性内容
 
+注意：平台订单号是 20 位以上的纯数字串，属于用户自己的订单信息，不是 PII，不因出现订单号判定泄露。
+
 请只返回 JSON，不要输出任何其他内容：
 {
     "passed": true/false,
@@ -135,6 +143,8 @@ class ComplianceCheckerAgent:
             if term in content:
                 violations.append(f"包含禁用表述: '{term}'")
 
+        # 先剔除订单号这类业务标识，避免长数字串被误判成手机号/身份证/银行卡
+        content = BUSINESS_ID_PATTERN.sub("", content)
         for pii_type, pattern in SENSITIVE_PATTERNS.items():
             if re.search(pattern, content):
                 label = {
@@ -146,8 +156,18 @@ class ComplianceCheckerAgent:
         return violations
 
     def _mask_pii(self, content: str) -> str:
-        """对PII信息进行脱敏处理"""
-        masked = content
+        """对PII信息进行脱敏处理，业务标识（订单号）原样保留。
+
+        先把业务标识换成占位符，脱敏完再还原：订单号是用户自己要看的信息，
+        既不该被判成 PII，也不该被打码。
+        """
+        kept: list[str] = []
+
+        def _stash(match: re.Match[str]) -> str:
+            kept.append(match.group())
+            return f"\x00BIZ{len(kept) - 1}\x00"
+
+        masked = BUSINESS_ID_PATTERN.sub(_stash, content)
         for pii_type, pattern in SENSITIVE_PATTERNS.items():
             def _mask_match(match):
                 text = match.group()
@@ -155,6 +175,8 @@ class ComplianceCheckerAgent:
                     return "****"
                 return text[:3] + "*" * (len(text) - 6) + text[-3:]
             masked = re.sub(pattern, _mask_match, masked)
+        for index, value in enumerate(kept):
+            masked = masked.replace(f"\x00BIZ{index}\x00", value)
         return masked
 
     @trace_agent_call("compliance_rule_check")

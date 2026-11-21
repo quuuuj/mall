@@ -2,9 +2,12 @@ package com.qiujie.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qiujie.dto.TicketCreateRequest;
-import com.qiujie.dto.TicketCreateResponse;
+import com.qiujie.vo.TicketCreateVO;
+import com.qiujie.entity.Faq;
+import com.qiujie.entity.KnowledgeDoc;
 import com.qiujie.entity.Order;
 import com.qiujie.entity.OrderItem;
+import com.qiujie.service.KnowledgeService;
 import com.qiujie.service.OrderService;
 import com.qiujie.service.TicketService;
 import io.modelcontextprotocol.json.McpJsonMapper;
@@ -71,6 +74,7 @@ public class McpServerConfig {
     public McpStatelessSyncServer mcpServer(WebMvcStatelessServerTransport transport,
                                             TicketService ticketService,
                                             OrderService orderService,
+                                            KnowledgeService knowledgeService,
                                             McpJsonMapper jsonMapper) {
         return McpServer.sync(transport)
                 .serverInfo("mall-server", "1.0.0")
@@ -79,7 +83,11 @@ public class McpServerConfig {
                 .tools(
                         createTicketTool(ticketService, jsonMapper),
                         getOrderBySnTool(orderService, jsonMapper),
-                        listRecentOrdersTool(orderService, jsonMapper)
+                        listRecentOrdersTool(orderService, jsonMapper),
+                        listEnabledFaqsTool(knowledgeService, jsonMapper),
+                        listEnabledDocsTool(knowledgeService, jsonMapper),
+                        updateIngestStatusTool(knowledgeService, jsonMapper),
+                        incrementFaqHitTool(knowledgeService, jsonMapper)
                 )
                 .build();
     }
@@ -129,6 +137,151 @@ public class McpServerConfig {
                                 .addTextContent("建单失败: " + e.getMessage())
                                 .isError(true)
                                 .build();
+                    }
+                })
+                .build();
+    }
+
+    /**
+     * 拉启用的 FAQ（全量同步 FAQ 向量用）。
+     */
+    private McpStatelessServerFeatures.SyncToolSpecification listEnabledFaqsTool(
+            KnowledgeService knowledgeService, McpJsonMapper jsonMapper) {
+        return McpStatelessServerFeatures.SyncToolSpecification.builder()
+                .tool(McpSchema.Tool.builder()
+                        .name("list_enabled_faqs")
+                        .description("拉取所有启用的 FAQ（知识库向量同步用）")
+                        .inputSchema(jsonMapper, """
+                                {"type": "object", "properties": {}}
+                                """)
+                        .build())
+                .callHandler((context, request) -> {
+                    try {
+                        var faqs = knowledgeService.listFaqs(1, 10000, null, 1).getRecords();
+                        List<Map<String, Object>> views = faqs.stream().map(f -> {
+                            Map<String, Object> view = new LinkedHashMap<>();
+                            view.put("faqId", f.getId());
+                            view.put("question", f.getQuestion());
+                            view.put("answer", f.getAnswer());
+                            view.put("category", f.getCategory());
+                            view.put("tags", f.getTags());
+                            view.put("enabled", Integer.valueOf(1).equals(f.getEnabled()));
+                            return view;
+                        }).toList();
+                        return McpSchema.CallToolResult.builder()
+                                .addTextContent(jsonText(jsonMapper, Map.of("faqs", views)))
+                                .build();
+                    } catch (RuntimeException e) {
+                        return errorResult(e);
+                    }
+                })
+                .build();
+    }
+
+    /**
+     * 拉启用的文档元数据（全量重建时得知哪些文档应保留向量）。
+     */
+    private McpStatelessServerFeatures.SyncToolSpecification listEnabledDocsTool(
+            KnowledgeService knowledgeService, McpJsonMapper jsonMapper) {
+        return McpStatelessServerFeatures.SyncToolSpecification.builder()
+                .tool(McpSchema.Tool.builder()
+                        .name("list_enabled_docs")
+                        .description("拉取所有启用的知识库文档元数据")
+                        .inputSchema(jsonMapper, """
+                                {"type": "object", "properties": {}}
+                                """)
+                        .build())
+                .callHandler((context, request) -> {
+                    try {
+                        var docs = knowledgeService.listDocs(1, 10000, null, null, "READY", 1).getRecords();
+                        List<Map<String, Object>> views = docs.stream().map(d -> {
+                            Map<String, Object> view = new LinkedHashMap<>();
+                            view.put("docId", d.getId());
+                            view.put("fileName", d.getFileName());
+                            view.put("title", d.getTitle());
+                            view.put("category", d.getCategory());
+                            view.put("tags", d.getTags());
+                            view.put("chunkSize", d.getChunkSize());
+                            view.put("chunkOverlap", d.getChunkOverlap());
+                            view.put("cleanRules", d.getCleanRules());
+                            view.put("status", d.getStatus());
+                            return view;
+                        }).toList();
+                        return McpSchema.CallToolResult.builder()
+                                .addTextContent(jsonText(jsonMapper, Map.of("docs", views)))
+                                .build();
+                    } catch (RuntimeException e) {
+                        return errorResult(e);
+                    }
+                })
+                .build();
+    }
+
+    /**
+     * 回写文档处理结果（Python 异步处理完成后调用）。
+     */
+    private McpStatelessServerFeatures.SyncToolSpecification updateIngestStatusTool(
+            KnowledgeService knowledgeService, McpJsonMapper jsonMapper) {
+        return McpStatelessServerFeatures.SyncToolSpecification.builder()
+                .tool(McpSchema.Tool.builder()
+                        .name("update_ingest_status")
+                        .description("回写知识库文档的处理状态与分块数")
+                        .inputSchema(jsonMapper, """
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "docId": {"type": "integer"},
+                                    "status": {"type": "string", "description": "READY / FAILED"},
+                                    "chunkCount": {"type": "integer"},
+                                    "errorMessage": {"type": "string"}
+                                  },
+                                  "required": ["docId", "status"]
+                                }
+                                """)
+                        .build())
+                .callHandler((context, request) -> {
+                    try {
+                        Map<String, Object> a = request.arguments();
+                        knowledgeService.updateIngestStatus(
+                                asLong(a.get("docId")),
+                                asString(a.get("status")),
+                                asInteger(a.get("chunkCount")),
+                                asString(a.get("errorMessage")));
+                        return McpSchema.CallToolResult.builder()
+                                .addTextContent("ok")
+                                .build();
+                    } catch (RuntimeException e) {
+                        return errorResult(e);
+                    }
+                })
+                .build();
+    }
+
+    /**
+     * FAQ 命中计数 +1（在线对话命中标准答案时调用）。
+     */
+    private McpStatelessServerFeatures.SyncToolSpecification incrementFaqHitTool(
+            KnowledgeService knowledgeService, McpJsonMapper jsonMapper) {
+        return McpStatelessServerFeatures.SyncToolSpecification.builder()
+                .tool(McpSchema.Tool.builder()
+                        .name("increment_faq_hit")
+                        .description("FAQ 命中次数加一")
+                        .inputSchema(jsonMapper, """
+                                {
+                                  "type": "object",
+                                  "properties": {"faqId": {"type": "integer"}},
+                                  "required": ["faqId"]
+                                }
+                                """)
+                        .build())
+                .callHandler((context, request) -> {
+                    try {
+                        knowledgeService.incrementFaqHit(asLong(request.arguments().get("faqId")));
+                        return McpSchema.CallToolResult.builder()
+                                .addTextContent("ok")
+                                .build();
+                    } catch (RuntimeException e) {
+                        return errorResult(e);
                     }
                 })
                 .build();
@@ -220,7 +373,7 @@ public class McpServerConfig {
                 .toList();
         return new LinkedHashMap<>() {{
             put("orderSn", order.getOrderSn());
-            put("status", order.getStatus() == null ? null : order.getStatus().getMessage());
+            put("status", order.getStatus() == null ? null : order.getStatus().getText());
             put("totalAmount", order.getTotalAmount());
             put("createTime", formatTime(order.getCreateTime()));
             put("paymentTime", formatTime(order.getPaymentTime()));
@@ -263,7 +416,7 @@ public class McpServerConfig {
         }
     }
 
-    private Map<String, Object> toTicketView(TicketCreateResponse response) {
+    private Map<String, Object> toTicketView(TicketCreateVO response) {
         return new LinkedHashMap<>() {{
             put("ticketNo", response.getTicketNo());
             put("category", response.getCategory());

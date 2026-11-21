@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum GenderEnum implements BaseEnum<Integer>{
+public enum GenderEnum implements DictEnum<Integer> {
 
     MALE(0,"男"),
     FEMALE(1,"女");
@@ -15,5 +15,5 @@ public enum GenderEnum implements BaseEnum<Integer>{
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

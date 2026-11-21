@@ -1,12 +1,9 @@
 package com.qiujie.controller.admin;
 
 
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
+import com.qiujie.common.Response;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.core.util.StrUtil;
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
 import com.qiujie.entity.User;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.service.OssService;
@@ -39,7 +36,7 @@ public class UserController {
     @Operation(summary = "新增")
     @PostMapping
     @SaCheckRole("admin")
-    public ResponseDTO<Void> add(@Valid @RequestBody User user) {
+    public Response<Void> add(@Valid @RequestBody User user) {
         userService.add(user);
         return Response.success();
     }
@@ -47,7 +44,7 @@ public class UserController {
     @Operation(summary = "逻辑删除")
     @DeleteMapping("/{id}")
     @SaCheckRole("admin")
-    public ResponseDTO<Void> delete(@PathVariable Integer id) {
+    public Response<Void> delete(@PathVariable Integer id) {
         userService.delete(id);
         return Response.success();
     }
@@ -55,7 +52,7 @@ public class UserController {
     @Operation(summary = "批量逻辑删除")
     @DeleteMapping("/batch/{ids}")
     @SaCheckRole("admin")
-    public ResponseDTO<Void> deleteBatch(@PathVariable List<Integer> ids) {
+    public Response<Void> deleteBatch(@PathVariable List<Integer> ids) {
         userService.deleteBatch(ids);
         return Response.success();
     }
@@ -63,33 +60,33 @@ public class UserController {
     @Operation(summary = "编辑更新")
     @PutMapping
     @SaCheckRole("admin")
-    public ResponseDTO<Void> edit(@Valid @RequestBody User user) {
+    public Response<Void> edit(@Valid @RequestBody User user) {
         userService.edit(user);
         return Response.success();
     }
 
     @Operation(summary = "查询")
     @GetMapping("/{id}")
-    public ResponseDTO<User> query(@PathVariable Integer id) {
+    public Response<User> query(@PathVariable Integer id) {
         return Response.success(userService.query(id));
     }
 
     @Operation(summary = "根据用户名查询用户")
     @GetMapping("/code/{code}")
-    public ResponseDTO<User> queryByCode(@PathVariable String code) {
+    public Response<User> queryByCode(@PathVariable String code) {
         return Response.success(userService.queryByCode(code));
     }
 
     @Operation(summary = "查询员工信息")
     @GetMapping("/info/{id}")
-    public ResponseDTO<User> queryInfo(@PathVariable Integer id) {
+    public Response<User> queryInfo(@PathVariable Integer id) {
         return Response.success(userService.queryInfo(id));
     }
 
     @Operation(summary = "多条件分页查询")
     @GetMapping
     @SaCheckRole("admin")
-    public ResponseDTO<Map<String, Object>> list(@RequestParam(defaultValue = "1") Integer current, @RequestParam(defaultValue = "10") Integer size, String name, String birthday, Integer status, String code, String phone, Integer gender, String startTime, String endTime) {
+    public Response<Map<String, Object>> list(@RequestParam(defaultValue = "1") Integer current, @RequestParam(defaultValue = "10") Integer size, String name, String birthday, Integer status, String code, String phone, Integer gender, String startTime, String endTime) {
         return Response.success(userService.list(current, size, name, birthday, status, code, phone, gender, startTime, endTime));
     }
 
@@ -103,7 +100,7 @@ public class UserController {
     @Operation(summary = "数据导入接口")
     @PostMapping("/import")
     @SaCheckRole("admin")
-    public ResponseDTO<Void> imp(MultipartFile file) throws IOException {
+    public Response<Void> imp(MultipartFile file) throws IOException {
         userService.imp(file);
         return Response.success();
     }
@@ -135,8 +132,8 @@ public class UserController {
 
     @Operation(summary = "上传头像")
     @PostMapping("/avatar")
-    public ResponseDTO<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
-        if (file.isEmpty()) return Response.error(BusinessStatusEnum.FILE_EMPTY);
+    public Response<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+        if (file.isEmpty()) return Response.error(BusinessStatusEnum.PARAM_ERROR.getCode(), "文件不能为空");
         String ossKey = ossService.upload(file, "avatar");
         String fileName = ossKey.startsWith("avatar/") ? ossKey.substring(7) : ossKey;
         String url = ossService.getUrl(ossKey);
@@ -146,7 +143,7 @@ public class UserController {
     @SaCheckRole("admin")
     @Operation(summary = "更新密码")
     @PutMapping("/reset")
-    public ResponseDTO<Void> reset(@Valid @RequestBody User user) {
+    public Response<Void> reset(@Valid @RequestBody User user) {
         userService.reset(user);
         return Response.success();
     }

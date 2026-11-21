@@ -19,7 +19,7 @@ import java.util.Set;
  */
 @Getter
 @AllArgsConstructor
-public enum TicketStatusEnum implements BaseEnum<Integer> {
+public enum TicketStatusEnum implements DictEnum<Integer> {
 
     PENDING(0, "待处理"),
     PROCESSING(1, "处理中"),
@@ -40,7 +40,7 @@ public enum TicketStatusEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 
     public static TicketStatusEnum of(Integer code) {
         for (TicketStatusEnum value : values()) {

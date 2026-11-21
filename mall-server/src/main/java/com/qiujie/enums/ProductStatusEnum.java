@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum ProductStatusEnum implements BaseEnum<Integer> {
+public enum ProductStatusEnum implements DictEnum<Integer> {
 
     OFF_SHELF(0, "下架"),
     ON_SHELF(1, "上架");
@@ -15,5 +15,5 @@ public enum ProductStatusEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

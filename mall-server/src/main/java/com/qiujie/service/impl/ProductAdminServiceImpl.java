@@ -7,12 +7,12 @@ import com.qiujie.entity.Product;
 import com.qiujie.entity.ProductImg;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.enums.ProductStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.ProductImgMapper;
 import com.qiujie.mapper.ProductMapper;
 import com.qiujie.service.ProductAdminService;
-import com.qiujie.util.BloomFilterService;
-import com.qiujie.util.RedisUtil;
+import com.qiujie.cache.ProductIdCache;
+import com.qiujie.cache.RedisUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.qiujie.constants.RedisConstants.*;
+import static com.qiujie.common.RedisConstants.*;
 
 /**
  * 商品管理服务 — 管理端 CRUD + 缓存失效。
@@ -36,7 +36,7 @@ public class ProductAdminServiceImpl extends ServiceImpl<ProductMapper, Product>
     private final RedisUtil redisUtil;
 
     @Autowired(required = false)
-    private BloomFilterService bloomFilterService;
+    private ProductIdCache productIdCache;
 
     public ProductAdminServiceImpl(ProductMapper productMapper, ProductImgMapper productImgMapper,
                                     RedisUtil redisUtil) {
@@ -64,10 +64,10 @@ public class ProductAdminServiceImpl extends ServiceImpl<ProductMapper, Product>
     @Override
     public void add(Product product) {
         if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) < 0) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "商品价格不能为负");
         }
         if (product.getStock() == null || product.getStock() < 0) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "商品库存不能为负");
         }
         save(product);
         if (product.getImages() != null && !product.getImages().isEmpty()) {
@@ -77,7 +77,7 @@ public class ProductAdminServiceImpl extends ServiceImpl<ProductMapper, Product>
             productImgMapper.insertBatch(product.getImages());
         }
         redisUtil.del(CACHE_HOME_KEY);
-        if (bloomFilterService != null) bloomFilterService.add(product.getId());
+        if (productIdCache != null) productIdCache.add(product.getId());
     }
 
     @Override

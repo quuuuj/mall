@@ -139,14 +139,14 @@ def _stem(doc: dict) -> str:
     return Path(str(source)).stem
 
 
-def print_report(report: Report) -> None:
+def print_report(report: Report, top_k: int) -> None:
     print()
     print("=" * 60)
     print("RAG 检索评测结果")
     print("=" * 60)
     print(f"用例总数        : {report.total}")
     print(f"可回答用例      : {report.answerable}")
-    print(f"hit@3           : {report.hits}/{report.answerable} = {report.hit_rate:.1%}")
+    print(f"hit@{top_k}         : {report.hits}/{report.answerable} = {report.hit_rate:.1%}")
     print(f"负样本用例      : {report.negative}")
     print(f"空召回准确率    : {report.empty_correct}/{report.negative} = {report.empty_accuracy:.1%}")
 
@@ -177,7 +177,7 @@ def main() -> None:
     print(f"[就绪] 知识库 {memory.document_count} 篇，阈值 {RAG_MIN_SCORE}，用例 {len(cases)} 条")
 
     report = evaluate(memory, cases, top_k=args.top_k, verbose=args.verbose)
-    print_report(report)
+    print_report(report, args.top_k)
 
     if report.hit_rate < 0.7 or report.empty_accuracy < 0.7:
         print("\n结果低于 70% 基线，请检查切分方式或知识缺口，不要靠改文档凑分。")

@@ -12,7 +12,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum TicketCategoryEnum implements BaseEnum<Integer> {
+public enum TicketCategoryEnum implements DictEnum<Integer> {
 
     REFUND_RETURN(1, "退款退货"),
     LOGISTICS(2, "物流异常"),
@@ -22,7 +22,7 @@ public enum TicketCategoryEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 
     public static TicketCategoryEnum of(Integer code) {
         for (TicketCategoryEnum value : values()) {

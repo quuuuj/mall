@@ -3,13 +3,14 @@ package com.qiujie.service.impl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.qiujie.common.CustomerSse;
 import com.qiujie.entity.Message;
 import com.qiujie.entity.Session;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.enums.BusinessStatusEnum;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.MessageMapper;
 import com.qiujie.service.MessageService;
 import com.qiujie.service.SessionService;
-import com.qiujie.util.CustomerSse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -34,7 +35,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     public List<Message> listMessagesBySessionId(Long sessionId, Integer userId) {
         Session session = sessionService.getById(sessionId);
         if (session == null || !session.getUserId().equals(userId)) {
-            throw new ServiceException(403, "无权查看该会话或会话不存在");
+            throw new BusinessException(BusinessStatusEnum.FORBIDDEN, "无权查看该会话或会话不存在");
         }
         return lambdaQuery()
                 .eq(Message::getSessionId, sessionId)
@@ -46,7 +47,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     public Flux<String> chat(Long sessionId, String message, Integer userId) {
         Session session = sessionService.getById(sessionId);
         if (session == null || !session.getUserId().equals(userId)) {
-            throw new ServiceException(403, "会话不存在或无权访问");
+            throw new BusinessException(BusinessStatusEnum.FORBIDDEN, "会话不存在或无权访问");
         }
 
         // 1. 检查是否为新会话的首条消息，若是则更新会话标题

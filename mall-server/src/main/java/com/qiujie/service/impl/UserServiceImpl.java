@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qiujie.entity.User;
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.UserMapper;
 import com.qiujie.service.OssService;
 import com.qiujie.service.UserService;
@@ -48,13 +48,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     public void add(User user) {
         if (user.getCode() == null || user.getCode().isBlank()) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "用户名不能为空");
         }
         if (user.getName() == null || user.getName().isBlank()) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "姓名不能为空");
         }
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "密码不能为空");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         save(user);
@@ -73,7 +73,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User query(Integer id) {
         User user = getById(id);
         if (user == null) {
-            throw new ServiceException(BusinessStatusEnum.USER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "用户不存在");
         }
         return user;
     }
@@ -81,7 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User queryByCode(String code) {
         User user = userMapper.queryByCode(code);
         if (user == null) {
-            throw new ServiceException(BusinessStatusEnum.USER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "用户不存在");
         }
         return user;
     }
@@ -145,7 +145,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public void validate(String pwd, Integer id) {
         User user = getById(id);
         if (!passwordEncoder.matches(pwd, user.getPassword())) {
-            throw new ServiceException(BusinessStatusEnum.PASSWORD_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "密码错误");
         }
     }
 
@@ -157,7 +157,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User queryInfo(Integer id) {
         User staffInfo = this.userMapper.queryInfo(id);
         if (staffInfo == null) {
-            throw new ServiceException(BusinessStatusEnum.USER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "用户不存在");
         }
         return staffInfo;
     }
@@ -165,7 +165,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User updateInfo(Integer userId, Map<String, String> params) {
         User user = getById(userId);
         if (user == null) {
-            throw new ServiceException(BusinessStatusEnum.USER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "用户不存在");
         }
         if (params.containsKey("name")) user.setName(params.get("name"));
         if (params.containsKey("phone")) user.setPhone(params.get("phone"));
@@ -181,7 +181,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Map<String, String> updateAvatar(Integer userId, MultipartFile file) throws IOException {
         User user = getById(userId);
         if (user == null) {
-            throw new ServiceException(BusinessStatusEnum.USER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "用户不存在");
         }
 
         byte[] fileBytes = file.getBytes();

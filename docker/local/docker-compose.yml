@@ -80,6 +80,23 @@ services:
       - mall-network
     restart: unless-stopped
 
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    container_name: mall-qdrant
+    mem_limit: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - mall-qdrant-data:/qdrant/storage
+    networks:
+      - mall-network
+    restart: unless-stopped
+
 networks:
   mall-network:
     name: mall-network
@@ -89,3 +106,4 @@ volumes:
   mall-redis-data:
   mall-rabbitmq-data:
   mall-es-data:
+  mall-qdrant-data:

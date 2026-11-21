@@ -8,19 +8,19 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qiujie.dto.TicketCreateRequest;
-import com.qiujie.dto.TicketCreateResponse;
-import com.qiujie.dto.TicketDetail;
-import com.qiujie.dto.TicketListItem;
+import com.qiujie.enums.BusinessStatusEnum;
+import com.qiujie.vo.TicketCreateVO;
+import com.qiujie.vo.TicketDetailVO;
+import com.qiujie.vo.TicketListItemVO;
 import com.qiujie.dto.TicketStatusUpdateRequest;
 import com.qiujie.entity.Ticket;
 import com.qiujie.entity.TicketLog;
 import com.qiujie.entity.Message;
 import com.qiujie.entity.User;
-import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.enums.TicketCategoryEnum;
 import com.qiujie.enums.TicketPriorityEnum;
 import com.qiujie.enums.TicketStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.TicketLogMapper;
 import com.qiujie.mapper.TicketMapper;
 import com.qiujie.mapper.MessageMapper;
@@ -37,7 +37,6 @@ import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -93,10 +92,10 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public TicketCreateResponse create(TicketCreateRequest request) {
+    public TicketCreateVO create(TicketCreateRequest request) {
         TicketCategoryEnum category = TicketCategoryEnum.of(request.getCategory());
         if (category == null) {
-            throw new ServiceException(400, "工单类型不合法");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "工单类型不合法");
         }
 
         TicketPriorityEnum priority = resolvePriority(request, category);
@@ -135,10 +134,10 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         log.info("客服工单已创建: ticketNo={}, userId={}, sessionId={}, category={}, needsInfo={}",
                 ticket.getTicketNo(), ticket.getUserId(), ticket.getSessionId(), category, needsInfo);
 
-        return new TicketCreateResponse(
+        return new TicketCreateVO(
                 ticket.getTicketNo(),
-                category.getMessage(),
-                TicketStatusEnum.PENDING.getMessage(),
+                category.getText(),
+                TicketStatusEnum.PENDING.getText(),
                 now);
     }
 
@@ -148,7 +147,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         }
         TicketPriorityEnum priority = TicketPriorityEnum.of(request.getPriority());
         if (priority == null) {
-            throw new ServiceException(400, "工单优先级不合法");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "工单优先级不合法");
         }
         return priority;
     }
@@ -160,7 +159,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         try {
             return JSON.parseObject(detail);
         } catch (Exception e) {
-            throw new ServiceException(400, "工单结构化字段不是合法 JSON");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "工单结构化字段不是合法 JSON");
         }
     }
 
@@ -172,27 +171,27 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         java.util.Set<String> present = detail == null ? java.util.Set.of() : detail.keySet();
         List<String> missing = required.stream().filter(key -> !present.contains(key)).toList();
         if (!missing.isEmpty()) {
-            throw new ServiceException(400, "缺少必填字段: " + String.join(", ", missing));
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "缺少必填字段: " + String.join(", ", missing));
         }
     }
 
     // ─── 管理端查询 ───
 
     @Override
-    public IPage<TicketListItem> list(Integer current, Integer size, Integer status, Integer category,
+    public IPage<TicketListItemVO> list(Integer current, Integer size, Integer status, Integer category,
                                         String startTime, String endTime) {
         TicketStatusEnum statusFilter = null;
         if (status != null) {
             statusFilter = TicketStatusEnum.of(status);
             if (statusFilter == null) {
-                throw new ServiceException(400, "状态筛选值不合法");
+                throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "状态筛选值不合法");
             }
         }
         TicketCategoryEnum categoryFilter = null;
         if (category != null) {
             categoryFilter = TicketCategoryEnum.of(category);
             if (categoryFilter == null) {
-                throw new ServiceException(400, "类型筛选值不合法");
+                throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "类型筛选值不合法");
             }
         }
 
@@ -208,7 +207,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
                 page.getRecords().stream().map(Ticket::getUserId).distinct().toList());
 
         return page.convert(ticket -> {
-            TicketListItem item = new TicketListItem();
+            TicketListItemVO item = new TicketListItemVO();
             item.setTicketNo(ticket.getTicketNo());
             item.setUserId(ticket.getUserId());
             item.setUserName(userNames.get(ticket.getUserId()));
@@ -217,25 +216,25 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
             item.setCreateTime(ticket.getCreateTime());
             if (ticket.getCategory() != null) {
                 item.setCategory(ticket.getCategory().getCode());
-                item.setCategoryText(ticket.getCategory().getMessage());
+                item.setCategoryText(ticket.getCategory().getText());
             }
             if (ticket.getStatus() != null) {
                 item.setStatus(ticket.getStatus().getCode());
-                item.setStatusText(ticket.getStatus().getMessage());
+                item.setStatusText(ticket.getStatus().getText());
             }
             if (ticket.getPriority() != null) {
                 item.setPriority(ticket.getPriority().getCode());
-                item.setPriorityText(ticket.getPriority().getMessage());
+                item.setPriorityText(ticket.getPriority().getText());
             }
             return item;
         });
     }
 
     @Override
-    public TicketDetail detail(String ticketNo) {
+    public TicketDetailVO detail(String ticketNo) {
         Ticket ticket = getByTicketNo(ticketNo);
 
-        TicketDetail detail = new TicketDetail();
+        TicketDetailVO detail = new TicketDetailVO();
         detail.setTicket(toView(ticket));
         List<Message> messages = messageMapper.selectList(Wrappers.<Message>lambdaQuery()
                 .eq(Message::getSessionId, ticket.getSessionId())
@@ -244,7 +243,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
                 .last("LIMIT 10"));
         Collections.reverse(messages);
         detail.setMessages(messages.stream().map(m -> {
-            TicketDetail.MessageView view = new TicketDetail.MessageView();
+            TicketDetailVO.MessageView view = new TicketDetailVO.MessageView();
             view.setType(m.getType());
             view.setContent(m.getContent());
             view.setCreateTime(m.getCreateTime());
@@ -257,17 +256,17 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public TicketDetail.TicketView updateStatus(String ticketNo, TicketStatusUpdateRequest request,
+    public TicketDetailVO.TicketView updateStatus(String ticketNo, TicketStatusUpdateRequest request,
                                                     Integer operatorId) {
         TicketStatusEnum target = TicketStatusEnum.of(request.getStatus());
         if (target == null) {
-            throw new ServiceException(400, "目标状态不合法");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "目标状态不合法");
         }
 
         Ticket ticket = getByTicketNo(ticketNo);
         TicketStatusEnum from = ticket.getStatus();
         if (!from.canTransitionTo(target)) {
-            throw new ServiceException(BusinessStatusEnum.TICKET_STATUS_INVALID);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "不允许的状态流转");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -308,7 +307,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         if (ticket.getSessionId() == null) {
             return;
         }
-        String content = String.format("工单 %s 状态已更新为「%s」。", ticket.getTicketNo(), to.getMessage());
+        String content = String.format("工单 %s 状态已更新为「%s」。", ticket.getTicketNo(), to.getText());
         if (remark != null && !remark.isBlank()) {
             content += "\n客服备注：" + remark.trim();
         }
@@ -332,13 +331,13 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
     private Ticket getByTicketNo(String ticketNo) {
         Ticket ticket = getOne(Wrappers.<Ticket>lambdaQuery().eq(Ticket::getTicketNo, ticketNo));
         if (ticket == null) {
-            throw new ServiceException(BusinessStatusEnum.TICKET_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "工单不存在");
         }
         return ticket;
     }
 
-    private TicketDetail.TicketView toView(Ticket ticket) {
-        TicketDetail.TicketView view = new TicketDetail.TicketView();
+    private TicketDetailVO.TicketView toView(Ticket ticket) {
+        TicketDetailVO.TicketView view = new TicketDetailVO.TicketView();
         view.setTicketNo(ticket.getTicketNo());
         view.setUserId(ticket.getUserId());
         view.setUserName(userNamesOf(List.of(ticket.getUserId())).get(ticket.getUserId()));
@@ -354,15 +353,15 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         view.setUpdateTime(ticket.getUpdateTime());
         if (ticket.getCategory() != null) {
             view.setCategory(ticket.getCategory().getCode());
-            view.setCategoryText(ticket.getCategory().getMessage());
+            view.setCategoryText(ticket.getCategory().getText());
         }
         if (ticket.getStatus() != null) {
             view.setStatus(ticket.getStatus().getCode());
-            view.setStatusText(ticket.getStatus().getMessage());
+            view.setStatusText(ticket.getStatus().getText());
         }
         if (ticket.getPriority() != null) {
             view.setPriority(ticket.getPriority().getCode());
-            view.setPriorityText(ticket.getPriority().getMessage());
+            view.setPriorityText(ticket.getPriority().getText());
         }
         return view;
     }
@@ -417,7 +416,7 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
         try {
             return LocalDate.parse(value.trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         } catch (DateTimeParseException e) {
-            throw new ServiceException(400, "时间格式不合法，应为 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "时间格式不合法，应为 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss");
         }
     }
 
@@ -436,6 +435,6 @@ public class TicketServiceImpl extends ServiceImpl<TicketMapper, Ticket> impleme
                 return ticketNo;
             }
         }
-        throw new ServiceException(BusinessStatusEnum.ERROR.getCode(), "工单号生成失败，请重试");
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR.getCode(), "工单号生成失败，请重试");
     }
 }

@@ -273,7 +273,7 @@ function loadStatusChart() {
   const chart = echarts.getInstanceByDom(statusChartRef.value) || echarts.init(statusChartRef.value, null, { renderer: 'svg' })
   const colorMap = { 0: '#909399', 1: '#e6a23c', 2: '#409eff', 3: '#67c23a', 4: '#f56c6c' }
   const data = enumStore.getOptions('orderStatus').map(item => ({
-    value: 0, name: item.message, color: colorMap[item.code] || '#909399'
+    value: 0, name: item.text, color: colorMap[item.code] || '#909399'
   }))
   const total = data.reduce((s, d) => s + d.value, 0)
   chart.setOption({

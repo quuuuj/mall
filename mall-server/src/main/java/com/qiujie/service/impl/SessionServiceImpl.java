@@ -2,7 +2,8 @@ package com.qiujie.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qiujie.entity.Session;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.enums.BusinessStatusEnum;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.SessionMapper;
 import com.qiujie.service.SessionService;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session> impl
     public void delete(Long sessionId, Integer userId) {
         Session session = getById(sessionId);
         if (session == null || !session.getUserId().equals(userId)) {
-            throw new ServiceException(403, "无权操作该会话或会话不存在");
+            throw new BusinessException(BusinessStatusEnum.FORBIDDEN, "无权操作该会话或会话不存在");
         }
         removeById(sessionId);
     }

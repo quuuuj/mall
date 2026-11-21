@@ -3,7 +3,6 @@ package com.qiujie.service.impl;
 import com.qiujie.mapper.*;
 import com.qiujie.service.HomeService;
 import com.qiujie.service.UserService;
-import com.qiujie.util.DatetimeUtil;
 import com.qiujie.vo.CategorySalesVO;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +19,13 @@ public class HomeServiceImpl implements HomeService {
     private final UserMapper userMapper;
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
-    private final DatetimeUtil datetimeUtil;
 
     public HomeServiceImpl(UserService userService, UserMapper userMapper,
-                           ProductMapper productMapper, OrderMapper orderMapper,
-                           DatetimeUtil datetimeUtil) {
+                           ProductMapper productMapper, OrderMapper orderMapper) {
         this.userService = userService;
         this.userMapper = userMapper;
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
-        this.datetimeUtil = datetimeUtil;
     }
 
     public Map<String, Object> getCount() {

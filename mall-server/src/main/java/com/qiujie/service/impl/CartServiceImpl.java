@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qiujie.entity.Cart;
 import com.qiujie.entity.Product;
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.CartMapper;
 import com.qiujie.mapper.ProductMapper;
 import com.qiujie.service.CartService;
@@ -33,7 +33,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     public void add(Integer userId, Cart cart) {
         Product product = productMapper.selectById(cart.getProductId());
         if (product == null || product.getDeleted() == 1) {
-            throw new ServiceException(BusinessStatusEnum.PRODUCT_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "商品不存在");
         }
         Cart existCart = cartMapper.selectByUserIdAndProductId(userId, cart.getProductId());
         if (existCart != null) {
@@ -62,7 +62,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     public void update(Integer userId, Cart cart) {
         Cart dbCart = cartMapper.selectById(cart.getId());
         if (dbCart == null || !dbCart.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.CART_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "购物车记录不存在");
         }
         if (cart.getAmount() != null && cart.getAmount() > 0) {
             dbCart.setAmount(cart.getAmount());
@@ -76,7 +76,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     public void delete(Integer userId, Integer id) {
         Cart dbCart = cartMapper.selectById(id);
         if (dbCart == null || !dbCart.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.CART_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "购物车记录不存在");
         }
         removeById(id);
     }
@@ -85,7 +85,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     public void batchDelete(Integer userId, Map<String, List<Integer>> params) {
         List<Integer> ids = params.get("ids");
         if (ids == null || ids.isEmpty()) {
-            throw new ServiceException(BusinessStatusEnum.CART_SELECT_EMPTY);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "请选择要删除的商品");
         }
         for (Integer id : ids) {
             Cart dbCart = cartMapper.selectById(id);

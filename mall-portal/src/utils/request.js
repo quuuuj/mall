@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { getAuth, removeAuth } from '@/utils/auth'
+import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
 
 const request = axios.create({
   baseURL: '/portal-api',
@@ -26,21 +27,16 @@ request.interceptors.request.use(config => {
 request.interceptors.response.use(
   res => {
     if (res.config.responseType === 'blob') return res
-    if (res.data.code !== 200) {
-      if (res.data.code === 1200) {
-        removeAuth()
-        window.location.href = '/#/login'
+    if (res.data.code !== 20000) {
+      if (res.data.code === 40100) {
+        useAuthStore().clearAuth()
+        router.push('/login')
       }
       return Promise.reject(res.data)
     }
     return res.data
   },
   err => {
-    if (err.response && err.response.status === 401) {
-      removeAuth()
-      window.location.href = '/#/login'
-      return Promise.reject(err)
-    }
     ElMessage.error('网络错误')
     return Promise.reject(err)
   }

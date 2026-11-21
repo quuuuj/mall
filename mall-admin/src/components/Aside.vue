@@ -36,7 +36,10 @@ const allMenus = [
   { name: '商品管理', path: '/product', icon: 'Goods', role: 1 },
   { name: '订单管理', path: '/order', icon: 'Document', role: 1 },
   { name: '秒杀管理', path: '/seckill', icon: 'Lightning', role: 1 },
-  { name: '工单管理', path: '/ticket', icon: 'Tickets', role: 1 }
+  { name: '工单管理', path: '/ticket', icon: 'Tickets', role: 1 },
+  { name: '知识库文档', path: '/knowledge-doc', icon: 'Document', role: 1 },
+  { name: 'FAQ 管理', path: '/knowledge-faq', icon: 'QuestionFilled', role: 1 },
+  { name: '检索测试台', path: '/knowledge-test', icon: 'Search', role: 1 }
 ]
 
 const route = useRoute()

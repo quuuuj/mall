@@ -5,14 +5,14 @@ import com.qiujie.entity.Product;
 import com.qiujie.entity.ProductImg;
 import com.qiujie.entity.SeckillSession;
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.CategoryMapper;
 import com.qiujie.mapper.ProductImgMapper;
 import com.qiujie.mapper.ProductMapper;
 import com.qiujie.mapper.SeckillSessionMapper;
 import com.qiujie.service.ProductViewService;
-import com.qiujie.util.BloomFilterService;
-import com.qiujie.util.CacheClient;
+import com.qiujie.cache.ProductIdCache;
+import com.qiujie.cache.CacheUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.qiujie.constants.RedisConstants.*;
+import static com.qiujie.common.RedisConstants.*;
 
 /**
  * 商品浏览服务实现 — 首页、分类、详情，仅依赖缓存 + DB。
@@ -34,26 +34,26 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final ProductImgMapper productImgMapper;
-    private final CacheClient cacheClient;
+    private final CacheUtil cacheUtil;
     private final SeckillSessionMapper seckillSessionMapper;
 
     @Autowired(required = false)
-    private BloomFilterService bloomFilterService;
+    private ProductIdCache productIdCache;
 
     public ProductViewServiceImpl(ProductMapper productMapper, CategoryMapper categoryMapper,
-                                   ProductImgMapper productImgMapper, CacheClient cacheClient,
+                                   ProductImgMapper productImgMapper, CacheUtil cacheUtil,
                                    SeckillSessionMapper seckillSessionMapper) {
         this.productMapper = productMapper;
         this.categoryMapper = categoryMapper;
         this.productImgMapper = productImgMapper;
-        this.cacheClient = cacheClient;
+        this.cacheUtil = cacheUtil;
         this.seckillSessionMapper = seckillSessionMapper;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> home() {
-        return cacheClient.queryWithLogicalExpire(
+        return cacheUtil.queryWithLogicalExpire(
                 CACHE_HOME_KEY, List.class,
                 () -> {
                     List<Category> parentCategories = categoryMapper.selectByParentId(0);
@@ -74,7 +74,7 @@ public class ProductViewServiceImpl implements ProductViewService {
     @Override
     @SuppressWarnings("unchecked")
     public List<Category> categories() {
-        List<Category> cached = cacheClient.queryWithLogicalExpire(
+        List<Category> cached = cacheUtil.queryWithLogicalExpire(
                 CACHE_CATEGORY_TREE_KEY, List.class,
                 () -> {
                     List<Category> all = categoryMapper.selectList(
@@ -115,15 +115,15 @@ public class ProductViewServiceImpl implements ProductViewService {
 
     @Override
     public Product detail(Integer id) {
-        if (bloomFilterService != null && !bloomFilterService.mightContain(id)) {
-            throw new ServiceException(BusinessStatusEnum.PRODUCT_NOT_EXIST);
+        if (productIdCache != null && !productIdCache.contains(id)) {
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "商品不存在");
         }
-        return cacheClient.queryWithLogicalExpire(
+        return cacheUtil.queryWithLogicalExpire(
                 CACHE_PRODUCT_KEY, id, Product.class,
                 productId -> {
                     Product p = productMapper.selectDetailById(productId);
                     if (p == null) {
-                        throw new ServiceException(BusinessStatusEnum.PRODUCT_NOT_EXIST);
+                        throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "商品不存在");
                     }
                     return p;
                 },

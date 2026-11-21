@@ -1,7 +1,7 @@
 """supervisor — 路由决策节点。
 
 分析用户最新消息，判断交给哪个节点处理；可用节点与图里的节点名一致：
-knowledge_rag / ticket_handler / chitchat / compliance_checker。
+knowledge_rag / order_query / ticket_handler / chitchat。
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from langchain_openai import ChatOpenAI
 from memory.working_memory import WorkingMemory
 from tracing.otel_config import trace_agent_call
 
-ROUTE_TARGETS = ("knowledge_rag", "order_query", "ticket_handler", "chitchat", "compliance_checker")
+ROUTE_TARGETS = ("knowledge_rag", "order_query", "ticket_handler", "chitchat")
 
 SUPERVISOR_SYSTEM_PROMPT = """你是一个智能客服系统的 Supervisor（主管编排Agent）。
 你的职责是分析用户意图，决定交给哪个节点处理。
@@ -24,7 +24,6 @@ SUPERVISOR_SYSTEM_PROMPT = """你是一个智能客服系统的 Supervisor（主
 - order_query: 查询用户自己的订单（「我那单到哪了」「我最近买了什么」「查一下订单 XXX」）
 - ticket_handler: 工单创建和查询（退款、理赔、投诉等需要人工办理的业务）
 - chitchat: 闲聊寒暄（打招呼、问候、感谢、告别、与业务无关的闲聊）
-- compliance_checker: 合规审查（敏感内容识别，仅在涉及资金安全、欺诈举报等场景直达）
 
 路由规则：
 - 问具体订单的状态、金额、买了什么，或给出订单号 → order_query

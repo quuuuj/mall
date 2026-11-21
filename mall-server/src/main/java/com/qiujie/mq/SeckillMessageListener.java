@@ -3,7 +3,7 @@ package com.qiujie.mq;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.qiujie.config.RabbitMQConfig;
-import com.qiujie.constants.RedisConstants;
+import com.qiujie.common.RedisConstants;
 import com.qiujie.entity.Order;
 import com.qiujie.entity.OrderItem;
 import com.qiujie.entity.Product;
@@ -11,12 +11,12 @@ import com.qiujie.entity.ProductImg;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.enums.OrderStatusEnum;
 import com.qiujie.enums.PayMethodEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.OrderItemMapper;
 import com.qiujie.mapper.OrderMapper;
 import com.qiujie.mapper.ProductImgMapper;
 import com.qiujie.mapper.ProductMapper;
-import com.qiujie.util.RedisUtil;
+import com.qiujie.cache.RedisUtil;
 import com.rabbitmq.client.Channel;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -241,7 +241,7 @@ public class SeckillMessageListener {
      * </ol>
      *
      * @param message 秒杀消息体
-     * @throws ServiceException 库存不足时抛出
+     * @throws BusinessException 库存不足时抛出
      */
     private void createSeckillOrder(SeckillMessage message) {
         // — 1. 幂等检查 —
@@ -256,7 +256,7 @@ public class SeckillMessageListener {
         int affected = productMapper.decrementStock(message.getProductId(), 1);
         if (affected == 0) {
             // 受影响行数为 0 → stock < 1 → 库存不足
-            throw new ServiceException(BusinessStatusEnum.PRODUCT_STOCK_INSUFFICIENT);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "商品库存不足");
         }
 
         // — 3. 查询商品信息（需要商品名写入订单项） —

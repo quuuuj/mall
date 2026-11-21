@@ -118,4 +118,10 @@
         ORDER BY `count` DESC
     </select>
 
+    <select id="selectDailyStats" resultType="java.util.Map">
+        SELECT COUNT(*) AS orderCount, COALESCE(SUM(total_amount), 0) AS totalSales
+        FROM oms_order
+        WHERE is_deleted = 0 AND create_time &gt;= #{start} AND create_time &lt; #{end}
+    </select>
+
 </mapper>

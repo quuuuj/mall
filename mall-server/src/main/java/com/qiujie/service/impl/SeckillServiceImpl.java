@@ -1,7 +1,7 @@
 package com.qiujie.service.impl;
 
 // 静态导入 Redis 常量（如 CACHE_SECKILL_ACTIVE_KEY、SECKILL_STOCK_KEY 等），简化代码中常量引用
-import static com.qiujie.constants.RedisConstants.*;
+import static com.qiujie.common.RedisConstants.*;
 
 // Hutool JSON 工具类，用于对象与 JSON 字符串之间的序列化/反序列化
 import cn.hutool.json.JSONUtil;
@@ -22,7 +22,7 @@ import com.qiujie.entity.SeckillSession;
 // 业务状态枚举，定义统一的错误码和提示信息
 import com.qiujie.enums.BusinessStatusEnum;
 // 自定义业务异常，携带 BusinessStatusEnum 错误码
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 // 商品图片 Mapper，提供按 productIds 批量查询的方法
 import com.qiujie.mapper.ProductImgMapper;
 // 商品 Mapper，继承 MyBatis-Plus BaseMapper
@@ -34,7 +34,7 @@ import com.qiujie.mq.SeckillMessage;
 // 秒杀服务接口
 import com.qiujie.service.SeckillService;
 // Redis 工具类，封装了 RedisTemplate 的常用操作和 Lua 脚本执行
-import com.qiujie.util.RedisUtil;
+import com.qiujie.cache.RedisUtil;
 // Spring RabbitMQ 模板，用于发送消息到交换机
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 // Spring 服务层注解，标记为 Spring Bean
@@ -198,7 +198,7 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
      *
      * @param sessionId 秒杀场次 ID
      * @param userId    用户 ID
-     * @throws ServiceException 场次不存在 / 已过期 / 重复秒杀 / 库存不足 / 系统异常
+     * @throws BusinessException 场次不存在 / 已过期 / 重复秒杀 / 库存不足 / 系统异常
      */
     @Override
     public void execute(Integer sessionId, Integer userId) {
@@ -206,12 +206,12 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
         SeckillSession session = seckillSessionMapper.selectById(sessionId);
         if (session == null) {
             // 场次不存在，抛出业务异常（全局异常处理器会转为统一响应格式）
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "秒杀活动不存在");
         }
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(session.getStartTime()) || now.isAfter(session.getEndTime())) {
             // 当前时间不在场次的 start_time ~ end_time 范围内
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_EXPIRED);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "秒杀活动已结束");
         }
 
         // ========== 2. Lua 脚本原子执行 ==========
@@ -261,15 +261,15 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
                 session.getSeckillStock(), 86400); // orderTtl=86400秒=24小时
         if (result == null) {
             // Lua 脚本执行异常（如 Redis 连接断开）
-            throw new ServiceException(BusinessStatusEnum.ERROR);
+            throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "秒杀库存扣减失败");
         }
         if (result == -1) {
             // 用户已参与过该场次秒杀
-            throw new ServiceException(BusinessStatusEnum.SECKILL_DUPLICATE);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "您已参与过此秒杀活动");
         }
         if (result == -2) {
             // 库存已耗尽
-            throw new ServiceException(BusinessStatusEnum.SECKILL_STOCK_EMPTY);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "已抢光");
         }
 
         // ========== 3. 失效秒杀缓存 ==========
@@ -287,7 +287,7 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
         message.setSeckillPrice(session.getSeckillPrice());
         if (rabbitTemplate == null) {
             // 防御性检查：RabbitMQ 未配置时直接抛异常
-            throw new ServiceException(BusinessStatusEnum.ERROR);
+            throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "秒杀服务暂不可用");
         }
         try {
             // 发送消息到秒杀交换机，路由键为 seckill
@@ -312,7 +312,7 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
                 """;
             // Void.class 表示不需要返回值，仅执行副作用
             redisUtil.executeLua(rollbackLua, Void.class, List.of(stockKey, orderKey));
-            throw new ServiceException(BusinessStatusEnum.ERROR);
+            throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "秒杀消息发送失败");
         }
     }
 
@@ -442,16 +442,16 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
         // 必填字段校验：秒杀价、秒杀库存、开始时间、结束时间
         if (session.getSeckillPrice() == null || session.getSeckillStock() == null
                 || session.getStartTime() == null || session.getEndTime() == null) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "秒杀价、库存和起止时间不能为空");
         }
         // 时间合法性校验：结束时间必须晚于开始时间
         if (!session.getEndTime().isAfter(session.getStartTime())) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR.getCode(), "结束时间必须晚于开始时间");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR.getCode(), "结束时间必须晚于开始时间");
         }
         // 关联商品存在性校验
         Product product = productMapper.selectById(session.getProductId());
         if (product == null) {
-            throw new ServiceException(BusinessStatusEnum.PRODUCT_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "商品不存在");
         }
         // 插入秒杀场次记录到数据库
         seckillSessionMapper.insert(session);
@@ -480,21 +480,21 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
         // 查询现有场次，确保场次存在
         SeckillSession existing = seckillSessionMapper.selectById(session.getId());
         if (existing == null) {
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "秒杀活动不存在");
         }
         // 已结束的场次不允许修改（end_time < now）
         if (existing.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_EXPIRED);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "秒杀活动已结束");
         }
         // 时间合法性校验
         if (!session.getEndTime().isAfter(session.getStartTime())) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR.getCode(), "结束时间必须晚于开始时间");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR.getCode(), "结束时间必须晚于开始时间");
         }
         // 秒杀价必须低于商品原价：防止配置错误导致秒杀价高于或等于原价
         Product product = productMapper.selectById(session.getProductId());
         if (product != null && session.getSeckillPrice() != null
                 && session.getSeckillPrice().compareTo(product.getPrice()) >= 0) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR.getCode(), "秒杀价必须低于商品原价");
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR.getCode(), "秒杀价必须低于商品原价");
         }
         // 更新数据库记录
         seckillSessionMapper.updateById(session);
@@ -518,11 +518,11 @@ public class SeckillServiceImpl extends ServiceImpl<SeckillSessionMapper, Seckil
         // 查询场次，确保存在
         SeckillSession session = seckillSessionMapper.selectById(id);
         if (session == null) {
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "秒杀活动不存在");
         }
         // 已结束的场次不允许删除
         if (session.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new ServiceException(BusinessStatusEnum.SECKILL_SESSION_EXPIRED);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "秒杀活动已结束");
         }
         // 从数据库删除
         seckillSessionMapper.deleteById(id);

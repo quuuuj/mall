@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -143,11 +144,11 @@ class OrderQueryAgent:
             lines.append("")
             lines.append("商品：")
             lines.extend(
-                f"- {item.get('productName')} × {item.get('amount')}（¥{item.get('price')}）"
+                f"- {item.get('productName')} × {item.get('amount')}（¥{self._money(item.get('price'))}）"
                 for item in items
             )
         lines.append("")
-        lines.append(f"订单金额：¥{order.get('totalAmount')}")
+        lines.append(f"订单金额：¥{self._money(order.get('totalAmount'))}")
         # 库里没有运单号，只能说到发货这一步，不能编造物流轨迹
         if order.get("status") == "已发货":
             lines.append("")
@@ -167,12 +168,22 @@ class OrderQueryAgent:
             ) or "商品信息缺失"
             lines.append(
                 f"{index}. {order.get('orderSn', '')}｜{order.get('status') or '未知'}｜"
-                f"¥{order.get('totalAmount')}｜{self._or_dash(order.get('createTime'))}"
+                f"¥{self._money(order.get('totalAmount'))}｜{self._or_dash(order.get('createTime'))}"
             )
             lines.append(f"   {names}")
         lines.append("")
         lines.append("想看某一笔的详情，把订单号发我。")
         return "\n".join(lines)
+
+    @staticmethod
+    def _money(value: Any) -> str:
+        """金额统一两位小数：工具返回的是 JSON 数字，89.0 直接拼进文本会丢精度位。"""
+        if value is None:
+            return "—"
+        try:
+            return f"{Decimal(str(value)):.2f}"
+        except (InvalidOperation, ValueError):
+            return str(value)
 
     @staticmethod
     def _or_dash(value: Any) -> str:

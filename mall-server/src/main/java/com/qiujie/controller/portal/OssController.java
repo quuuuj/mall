@@ -1,7 +1,6 @@
 package com.qiujie.controller.portal;
 
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
+import com.qiujie.common.Response;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.service.OssService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,9 +24,9 @@ public class OssController {
 
     @Operation(summary = "文件上传")
     @PostMapping("/upload")
-    public ResponseDTO<Map<String, String>> upload(@RequestParam("file") MultipartFile file,
+    public Response<Map<String, String>> upload(@RequestParam("file") MultipartFile file,
                                                     @RequestParam(value = "dir", defaultValue = "common") String dir) throws IOException {
-        if (file.isEmpty()) return Response.error(BusinessStatusEnum.FILE_EMPTY);
+        if (file.isEmpty()) return Response.error(BusinessStatusEnum.PARAM_ERROR.getCode(), "文件不能为空");
         String fileName = ossService.upload(file, dir);
         String url = ossService.getUrl(fileName);
         return Response.success(Map.of("fileName", fileName, "url", url));

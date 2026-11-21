@@ -2,8 +2,8 @@ package com.qiujie.interceptor;
 
 import com.qiujie.annotation.RateLimit;
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
-import com.qiujie.util.RedisUtil;
+import com.qiujie.exception.BusinessException;
+import com.qiujie.cache.RedisUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +40,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
      * @param response 当前 HTTP 响应
      * @param handler  本次请求的目标处理器
      * @return true 放行，false 拦截
-     * @throws ServiceException 超过限流阈值时抛出
+     * @throws BusinessException 超过限流阈值时抛出
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
@@ -62,7 +62,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             redisUtil.expire(redisKey, rateLimit.window());
         }
         if (current > rateLimit.limit()) {
-            throw new ServiceException(BusinessStatusEnum.RATE_LIMIT_EXCEEDED.getCode(),
+            throw new BusinessException(BusinessStatusEnum.RATE_LIMITED.getCode(),
                     rateLimit.message());
         }
         return true;

@@ -39,7 +39,7 @@ CREATE TABLE `cs_message` (
 
 LOCK TABLES `cs_message` WRITE;
 /*!40000 ALTER TABLE `cs_message` DISABLE KEYS */;
-INSERT INTO `cs_message` VALUES (1,1,'user','你好','2026-10-05 17:51:01'),(2,1,'assistant','您好，请问有什么可以帮您？您可以咨询理财产品A、退款政策或开户流程等相关问题。\n\n以上信息仅供参考，具体以合同条款为准。\n\n来源：product_faq.md、refund_policy.md、account_guide.md','2026-10-05 17:51:56'),(3,1,'user','你知道商品购买流程吗？','2026-10-05 18:51:27'),(4,1,'assistant','抱歉，当前检索到的文档中没有“商品购买流程”的具体信息，无法为您提供准确流程。建议您转人工客服获取详细指引。\n\n如涉及金融产品购买，以上信息仅供参考，具体以合同条款为准。\n\n来源：refund_policy.md、account_guide.md、product_faq.md','2026-10-05 18:52:20'),(5,1,'user','我叫小明','2026-10-05 20:41:02'),(6,1,'assistant','抱歉，暂时无法处理您的请求，请稍后重试。','2026-10-05 20:41:08'),(7,1,'user','你知道我叫什么名字吗','2026-10-05 20:42:32'),(8,1,'assistant','抱歉，根据当前检索到的文档内容，我无法知道您的姓名。\n\n建议您转人工客服，以便核实您的身份信息。\n\n引用来源：account_guide.md、refund_policy.md、product_faq.md','2026-10-05 20:43:26'),(9,1,'user','现在几点','2026-10-05 20:44:37'),(10,1,'assistant','抱歉，检索到的文档中没有当前时间相关信息，无法回答“现在几点”。建议您查看设备时间或转人工咨询。\n\n引用来源：product_faq.md、refund_policy.md、account_guide.md','2026-10-05 20:45:24'),(11,1,'user','你好','2026-10-05 20:46:01'),(12,1,'assistant','您好！很高兴为您服务。请问您想咨询退款、开户流程，还是理财产品相关问题？\n\n引用文档来源：本次未引用具体文档内容。','2026-10-05 20:46:38'),(13,2,'user','你们支持七天无理由退货吗？','2026-10-05 23:14:27'),(14,2,'assistant','支持。您在购买后 **7天内可申请无理由退款**；超过7天则需提供合理原因。退款一般会在 **3-5个工作日内原路退回**。\n\n来源：refund_policy.md','2026-10-05 23:15:04'),(15,3,'user','你们支持七天无理由退货吗？','2026-10-05 23:17:43'),(16,3,'assistant','支持。您在购买后 **7天内可申请无理由退款**；超过7天则需提供合理原因。退款一般会在 **3-5个工作日内原路退回**。\n\n来源：refund_policy.md','2026-10-05 23:18:57'),(17,4,'user','退换货','2026-10-05 23:19:22'),(18,4,'assistant','关于退换货：\n\n- **退货/退款**：您在购买后 **7天内可申请无理由退款**；超过7天需提供合理原因。退款将在 **3-5个工作日内原路退回**。  \n- **换货**：当前检索到的文档中未说明换货政策，建议您联系人工客服进一步处理。\n\n引用来源：refund_policy.md','2026-10-05 23:20:06'),(19,4,'user','我的商品什么时候到','2026-10-06 13:49:08'),(20,4,'assistant','工单已创建成功！\n\n📋 工单号: TK-20261006-500AEB\n📝 类型: general\n⚡ 优先级: 普通\n📄 摘要: 商品到货时间咨询\n🕐 创建时间: 2026-10-06T15:54:11.659110\n\n我们将尽快处理您的请求，请保存好工单号以便后续查询。','2026-10-06 16:01:26'),(21,4,'user','退换货','2026-10-06 16:10:55'),(22,4,'user','退换货','2026-10-06 17:47:51'),(23,4,'user','退换货','2026-10-06 18:48:22'),(24,4,'assistant','目前关于“退换货”的说明如下：\n\n- **退款**：购买后 **7天内** 可申请无理由退款；超过7天需提供合理原因。  \n- **退款到账**：退款将在 **3-5个工作日内原路退回**。  \n- **换货**：当前检索到的文档中未提及换货相关政策，建议转人工进一步处理。\n\n引用来源：refund_policy.md','2026-10-06 19:24:47'),(25,4,'user','退款','2026-10-06 19:35:45'),(26,4,'assistant','您好，关于退款：\n\n- 购买后 **7天内** 可申请 **无理由退款**；  \n- 超过 **7天** 申请退款，需提供合理原因；  \n- 退款审核通过后，将在 **3-5个工作日内原路退回**。\n\n以上信息仅供参考，具体以合同条款为准。\n\n引用来源：refund_policy.md','2026-10-06 19:36:26'),(27,4,'user','我叫小明','2026-10-06 19:37:17'),(28,4,'assistant','抱歉，暂时无法处理您的请求，请稍后重试。','2026-10-06 19:37:22'),(29,4,'user','退款100元','2026-10-06 19:38:25'),(30,4,'assistant','工单已创建成功！\n\n📋 工单号: TK-20261006-63951B\n📝 类型: refund\n⚡ 优先级: 中等\n📄 摘要: 退款100元申请\n🕐 创建时间: 2026-10-06T19:38:37.260550\n\n我们将尽快处理您的请求，请保存好工单号以便后续查询。','2026-10-06 19:38:51'),(31,4,'user','你应该退我多少钱','2026-10-06 19:39:32'),(32,4,'assistant','目前无法确定应退您多少钱，因为需要结合您的订单金额、购买时间、退款原因等信息核算。\n\n根据退款政策：购买后7天内可申请无理由退款；超过7天需提供合理原因。退款审核通过后，将在3-5个工作日内原路退回。建议您提供订单号或联系人工客服进一步核实。\n\n以上信息仅供参考，具体以合同条款为准。如涉及理财产品，理财非存款，产品有风险，投资须谨慎。\n\n来源：refund_policy.md','2026-10-06 19:40:35'),(33,4,'user','我叫小明','2026-10-06 19:53:53'),(34,4,'assistant','好的，小明。请问有什么可以帮您？\n\n引用来源：无（本次未使用检索文档）','2026-10-06 20:12:51'),(35,4,'user','我叫什么名字','2026-10-06 20:13:10'),(36,4,'assistant','抱歉，根据当前检索到的文档内容，无法查询到您的姓名信息。建议您联系人工客服，通过身份验证后为您核实。\n\n引用来源：  \n- account_guide.md  \n- refund_policy.md  \n- product_faq.md','2026-10-06 20:14:55'),(37,4,'user','你好','2026-10-09 21:03:35'),(38,4,'assistant','您好，请问有什么可以帮您？我可以协助您了解退款政策、开户流程或理财产品相关信息。\n\n来源：refund_policy.md、account_guide.md、product_faq.md','2026-10-09 21:07:25'),(39,4,'user','我叫小明','2026-10-09 21:07:50'),(40,5,'user','你好，我叫小明','2026-10-11 15:47:05'),(41,5,'assistant','你好小明，很高兴认识你呀！今天有什么我可以帮你的吗？比如查订单、商品咨询或售后问题都可以告诉我。','2026-10-11 15:47:28'),(42,5,'user','我叫什么名字','2026-10-11 15:47:45'),(43,5,'assistant','你刚才说叫小明呀～小明，还有什么我可以帮你的吗？','2026-10-11 15:48:04'),(44,6,'user','你好，我叫小明，记住我的名字','2026-10-11 20:53:44'),(45,6,'assistant','你好小明，很高兴认识你！有什么需要帮忙的，比如查订单、退换货或商品咨询，都可以告诉我。','2026-10-11 20:54:04'),(46,6,'user','我叫什么名字？','2026-10-11 20:54:07'),(47,6,'assistant','你叫小明呀～我记住啦。有什么电商相关的问题需要我帮忙吗？','2026-10-11 20:54:28'),(48,6,'user','我刚才说我叫什么名字来着？','2026-10-11 20:54:57'),(49,6,'assistant','你刚才说你叫小明呀～我记着呢。有什么需要帮忙的吗？','2026-10-11 20:55:19'),(50,7,'user','我上周买的充电器坏了，我要申请退款','2026-10-11 20:56:37'),(51,7,'assistant','工单已创建成功！\n\n📋 工单号: TK-20261011-5C2EE5\n📝 类型: refund\n⚡ 优先级: 中等\n📄 摘要: 充电器损坏申请退款\n🕐 创建时间: 2026-10-11T20:56:46.019706\n\n我们将尽快处理您的请求，请保存好工单号以便后续查询。','2026-10-11 20:57:00'),(52,7,'user','太慢了，给它加急处理，越快越好','2026-10-11 20:57:04'),(53,7,'assistant','工单已更新成功！\n\n📋 工单号: TK-20261011-5C2EE5\n⚡ 优先级: 高\n📊 状态: 已创建\n🕐 更新时间: 2026-10-11T20:57:24.295266\n\n我们会按更新后的要求处理，请保存好工单号以便后续查询。','2026-10-11 20:57:40'),(54,7,'user','查一下它的进度','2026-10-11 20:57:44'),(55,7,'assistant','工单查询结果：\n\n📋 工单号: TK-20261011-5C2EE5\n📊 状态: 已创建\n📝 类型: refund\n📄 摘要: 充电器损坏申请退款\n🕐 创建时间: 2026-10-11T20:56:46.019706\n🔄 更新时间: 2026-10-11T20:57:24.295266','2026-10-11 20:58:13'),(56,8,'user','我上周买的超声波香薰机坏了，我要申请退款','2026-10-11 22:46:17'),(57,8,'assistant','工单已创建成功！\n\n📋 工单号: TK-20261011-6C4751\n📝 类型: refund\n⚡ 优先级: 中等\n📄 摘要: 超声波香薰机损坏申请退款\n🕐 创建时间: 2026-10-11T22:46:34.282632\n\n我们将尽快处理您的请求，请保存好工单号以便后续查询。','2026-10-11 22:46:56'),(58,8,'user','太慢了，给它升级为紧急优先级','2026-10-11 22:47:06'),(59,8,'assistant','工单已更新成功！\n\n📋 工单号: TK-20261011-6C4751\n⚡ 优先级: 紧急\n📊 状态: 已创建\n🕐 更新时间: 2026-10-11T22:47:49.018978\n\n我们会按更新后的要求处理，请保存好工单号以便后续查询。','2026-10-11 22:48:17'),(60,8,'user','查一下它的进度','2026-10-11 22:48:29'),(61,8,'assistant','工单查询结果：\n\n📋 工单号: TK-20261011-6C4751\n📊 状态: 已创建\n📝 类型: refund\n📄 摘要: 超声波香薰机损坏申请退款\n🕐 创建时间: 2026-10-11T22:46:34.282632\n🔄 更新时间: 2026-10-11T22:47:49.018978','2026-10-11 22:48:58');
+INSERT INTO `cs_message` VALUES (1,1,'user','你好','2026-10-05 17:51:01'),(2,1,'assistant','您好，请问有什么可以帮您？退货、物流、发票、投诉建议都可以直接问我。','2026-10-05 17:51:56'),(3,1,'user','你们支持七天无理由退货吗？','2026-10-05 18:51:27'),(4,1,'assistant','支持。签收后七天内可以申请无理由退货，商品需要保持完好、不影响二次销售。\n\n来源：01-return-7-days','2026-10-05 18:52:20'),(5,1,'user','退款多久能到账','2026-10-05 20:41:02'),(6,1,'assistant','审核通过后原路退回，一般 1-3 个工作日到账，具体以银行处理时间为准。\n\n来源：02-refund-arrival','2026-10-05 20:41:08'),(7,1,'user','我的快递到哪了','2026-10-05 20:42:32'),(8,1,'assistant','可以在门户「我的订单」里查看物流轨迹。如果物流信息长时间不更新，把订单号发给我，我帮你确认订单状态。\n\n来源：05-logistics-tracking','2026-10-05 20:43:26'),(9,1,'user','多少钱免运费','2026-10-05 20:44:37'),(10,1,'assistant','单笔订单满 99 元免运费，不满 99 元按地区收取 8-15 元运费，偏远地区另计。\n\n来源：07-shipping-fee','2026-10-05 20:45:24'),(11,1,'user','能开发票吗','2026-10-05 20:46:01'),(12,1,'assistant','可以。下单时在结算页填写发票信息，支持电子普通发票；已完成的订单可以联系人工客服补开。\n\n来源：08-invoice','2026-10-05 20:46:38'),(13,2,'user','你们支持七天无理由退货吗？','2026-10-05 23:14:27'),(14,2,'assistant','支持。签收后七天内可以申请无理由退货，商品需要保持完好、不影响二次销售。\n\n来源：01-return-7-days','2026-10-05 23:15:04'),(15,3,'user','尺码拍错了想换一个大的怎么弄','2026-10-05 23:17:43'),(16,3,'assistant','可以在「我的订单」里对这笔订单发起换货申请，选择需要的尺码后寄回原商品，仓库收到并检验通过后安排重新发货。\n\n来源：03-exchange','2026-10-05 23:18:57'),(17,4,'user','退换货','2026-10-05 23:19:22'),(18,4,'assistant','退货和换货的规则不太一样：\n\n- 退货：签收后七天内可申请无理由退货，商品需保持完好\n- 换货：可申请换不同尺码或颜色，寄回后由仓库检验再发出\n\n你想办哪一项？','2026-10-05 23:20:06'),(19,4,'user','我的商品什么时候到','2026-10-06 13:49:08'),(20,4,'assistant','工单创建成功，工单号 TK-20261006-500AEB。客服会在一个工作日内联系你确认到货时间。','2026-10-06 16:01:26'),(21,4,'user','收到的东西有质量问题怎么赔','2026-10-06 16:10:55'),(22,4,'assistant','质量问题需要提供商品照片和问题描述，客服核实后按情况安排退货退款或补发。具体赔付以核实结果为准，我不能直接承诺赔偿金额。\n\n来源：15-quality-issue、25-after-sale-evidence','2026-10-06 17:47:51'),(23,4,'user','申请售后要传什么照片','2026-10-06 18:48:22'),(24,4,'assistant','需要拍清楚问题部位的全貌和细节各一张，能看出瑕疵或损坏即可；如果是包装破损，再补一张外包装照片。\n\n来源：25-after-sale-evidence','2026-10-06 19:24:47'),(25,4,'user','订单显示已发货是什么意思','2026-10-06 19:35:45'),(26,4,'assistant','表示仓库已经把商品交给快递，订单进入运输中。之后可以在「我的订单」里看到物流轨迹，或者把订单号发我，我帮你确认状态。\n\n来源：24-order-status','2026-10-06 19:36:26'),(27,4,'user','下单了可以取消吗','2026-10-06 19:37:17'),(28,4,'assistant','未发货的订单可以直接取消，取消后款项原路退回；已发货的订单需要等签收后再走退货流程。\n\n来源：13-order-cancel','2026-10-06 19:37:22'),(29,4,'user','地址填错了能改吗','2026-10-06 19:38:25'),(30,4,'assistant','未发货时可以在订单详情里修改收货地址；已发货的需要联系快递方改派，成功与否取决于物流状态。\n\n来源：14-address-change','2026-10-06 19:38:51'),(31,4,'user','发票抬头写错了能改吗','2026-10-06 19:39:32'),(32,4,'assistant','电子发票可以作废后重开，把正确抬头发我就行；纸质发票需要联系人工客服处理。\n\n来源：09-invoice-title','2026-10-06 19:40:35'),(33,4,'user','优惠券过期了还能补回来吗','2026-10-06 19:53:53'),(34,4,'assistant','优惠券过期后不补发，有效期在下单结算页和「我的优惠券」里都能看到。\n\n来源：11-coupon-expiry','2026-10-06 20:12:51'),(35,4,'user','我要投诉，怎么弄','2026-10-06 20:13:10'),(36,4,'assistant','可以直接把情况告诉我，我帮你建投诉工单，客服会在一个工作日内跟进。\n\n来源：22-complaint','2026-10-06 20:14:55'),(37,4,'user','你们发不发货到我这个地方','2026-10-09 21:03:35'),(38,4,'assistant','大部分地区都支持配送，偏远地区可能不支持或有额外运费。可以看一下商品详情页的配送说明。\n\n来源：18-delivery-area','2026-10-09 21:07:25'),(39,4,'user','要传几张照片','2026-10-09 21:07:50'),(40,5,'user','你好，我叫小明','2026-10-11 15:47:05'),(41,5,'assistant','你好小明，有什么可以帮你的？退货、物流、发票、订单查询都可以直接问我。','2026-10-11 15:47:28'),(42,5,'user','我叫什么名字','2026-10-11 15:47:45'),(43,5,'assistant','你刚才说叫小明呀～还有什么需要帮忙的吗？','2026-10-11 15:48:04'),(44,6,'user','我上周买的充电器坏了，我要申请退款','2026-10-11 20:53:44'),(45,6,'assistant','好的，我帮你建工单。要退款的是哪一笔订单？把订单号发我，我确认下状态。','2026-10-11 20:54:04'),(46,6,'user','订单号 2026061514355116863488','2026-10-11 20:54:07'),(47,6,'assistant','订单 2026061514355116863488 当前状态：已完成，订单金额 ¥89.00。已按退款退货为你建工单，工单号 TK-20261011-5C2EE5，客服会在一个工作日内联系你。','2026-10-11 20:54:28'),(48,6,'user','查一下工单进度','2026-10-11 20:54:57'),(49,6,'assistant','工单 TK-20261011-5C2EE5 当前状态：待处理，创建时间 2026-10-11 20:54。','2026-10-11 20:55:19'),(50,7,'user','买的东西不想要了能退吗','2026-10-11 20:56:37'),(51,7,'assistant','可以。签收后七天内能申请无理由退货，商品保持完好、不影响二次销售即可。超过七天如有质量问题，可以提供照片由客服核实处理。\n\n来源：01-return-7-days','2026-10-11 20:57:00'),(52,7,'user','拆了包装还能退不','2026-10-11 20:57:04'),(53,7,'assistant','包装拆开但商品完好、不影响二次销售的话，一般仍可无理由退货；定制类或已激活的电子产品不支持无理由退货，需要走质量问题流程。\n\n来源：01-return-7-days','2026-10-11 20:57:40'),(54,7,'user','退货的邮费谁出','2026-10-11 20:57:44'),(55,7,'assistant','无理由退货的寄回运费由买家承担；如果是质量问题，寄回运费由平台承担。\n\n来源：07-shipping-fee','2026-10-11 20:58:13'),(56,8,'user','这个理财保本吗','2026-10-11 22:46:17'),(57,8,'assistant','抱歉，你的请求暂时无法在线处理，请联系人工客服进一步沟通。','2026-10-11 22:46:56'),(58,8,'user','帮我订一张去北京的机票','2026-10-11 22:47:06'),(59,8,'assistant','这个问题我在平台政策里没有找到明确依据，不好凭印象回答你。\n\n可以帮你转成人工工单跟进，选一类更接近的：\n\n- 退款退货\n- 物流异常\n- 发票\n- 投诉建议\n\n回复类别，或直接描述你的诉求，我来建单。','2026-10-11 22:47:49'),(60,8,'user','每天几点上班','2026-10-11 22:48:29'),(61,8,'assistant','在线客服 7×24 小时在线；人工客服工作时间为每天 9:00-21:00，其余时段可以先建工单，次日处理。\n\n来源：21-service-hours','2026-10-11 22:48:58');
 /*!40000 ALTER TABLE `cs_message` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -68,7 +68,7 @@ CREATE TABLE `cs_session` (
 
 LOCK TABLES `cs_session` WRITE;
 /*!40000 ALTER TABLE `cs_session` DISABLE KEYS */;
-INSERT INTO `cs_session` VALUES (1,1,'你好',0,'2026-10-05 16:46:40','2026-10-05 20:46:02'),(2,1,'你们支持七天无理由退货吗？',1,'2026-10-05 23:13:12','2026-10-05 23:19:32'),(3,1,'你们支持七天无理由退货吗？',0,'2026-10-05 23:17:24','2026-10-05 23:17:43'),(4,1,'退换货',0,'2026-10-05 23:19:18','2026-10-09 21:07:50'),(5,1,'你好，我叫小明',0,'2026-10-11 15:45:25','2026-10-11 15:47:46'),(6,1,'你好，我叫小明，记住我的名字',0,'2026-10-11 20:53:38','2026-10-11 20:54:57'),(7,1,'我上周买的充电器坏了，我要申请退款',0,'2026-10-11 20:56:33','2026-10-11 20:57:45'),(8,1,'我上周买的超声波香薰机坏了，我要申请退款',0,'2026-10-11 22:46:04','2026-10-11 22:48:29');
+INSERT INTO `cs_session` VALUES (1,1,'你好',0,'2026-10-05 16:46:40','2026-10-05 20:46:02'),(2,1,'你们支持七天无理由退货吗？',1,'2026-10-05 23:13:12','2026-10-05 23:19:32'),(3,1,'尺码拍错了想换一个大的怎么弄',0,'2026-10-05 23:17:24','2026-10-05 23:17:43'),(4,1,'退换货',0,'2026-10-05 23:19:18','2026-10-09 21:07:50'),(5,1,'你好，我叫小明',0,'2026-10-11 15:45:25','2026-10-11 15:47:46'),(6,1,'我上周买的充电器坏了，我要申请退款',0,'2026-10-11 20:53:38','2026-10-11 20:54:57'),(7,1,'买的东西不想要了能退吗',0,'2026-10-11 20:56:33','2026-10-11 20:57:45'),(8,1,'这个理财保本吗',0,'2026-10-11 22:46:04','2026-10-11 22:48:29');
 /*!40000 ALTER TABLE `cs_session` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -122,6 +122,102 @@ CREATE TABLE `cs_ticket_log` (
   PRIMARY KEY (`id`),
   KEY `idx_ticket_create` (`ticket_id`,`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服工单状态变更日志表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cs_knowledge_doc`
+--
+
+DROP TABLE IF EXISTS `cs_knowledge_doc`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_knowledge_doc` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '文档ID',
+  `file_name` varchar(255) NOT NULL COMMENT '存储文件名（上传目录内相对路径）',
+  `original_name` varchar(255) NOT NULL COMMENT '原始文件名',
+  `file_type` varchar(16) NOT NULL COMMENT 'pdf/docx/md/txt/html/image',
+  `file_size` bigint NOT NULL DEFAULT '0' COMMENT '文件字节数',
+  `title` varchar(200) NOT NULL DEFAULT '' COMMENT '文档标题',
+  `category` varchar(64) NOT NULL DEFAULT '' COMMENT '分类',
+  `tags` varchar(500) NOT NULL DEFAULT '' COMMENT '标签，逗号分隔',
+  `enabled` tinyint NOT NULL DEFAULT '1' COMMENT '是否启用: 0否 1是',
+  `status` varchar(16) NOT NULL DEFAULT 'PENDING' COMMENT '处理状态: PENDING/PROCESSING/READY/FAILED',
+  `chunk_count` int NOT NULL DEFAULT '0' COMMENT '入库分块数',
+  `error_message` varchar(1000) NOT NULL DEFAULT '' COMMENT '失败原因',
+  `chunk_size` int NOT NULL DEFAULT '800' COMMENT '分块字符数',
+  `chunk_overlap` int NOT NULL DEFAULT '100' COMMENT '分块重叠字符数',
+  `clean_rules` varchar(1000) NOT NULL DEFAULT '{}' COMMENT '清洗规则开关 JSON',
+  `operator_id` int NOT NULL DEFAULT '0' COMMENT '最后操作人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_status_enabled` (`status`,`enabled`),
+  KEY `idx_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服知识库文档表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cs_faq`
+--
+
+DROP TABLE IF EXISTS `cs_faq`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_faq` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'FAQ ID',
+  `question` varchar(500) NOT NULL COMMENT '标准问题',
+  `answer` text NOT NULL COMMENT '标准答案',
+  `category` varchar(64) NOT NULL DEFAULT '' COMMENT '分类',
+  `tags` varchar(500) NOT NULL DEFAULT '' COMMENT '标签，逗号分隔',
+  `enabled` tinyint NOT NULL DEFAULT '1' COMMENT '是否启用: 0否 1是',
+  `hit_count` bigint NOT NULL DEFAULT '0' COMMENT '命中次数',
+  `operator_id` int NOT NULL DEFAULT '0' COMMENT '最后操作人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_enabled` (`enabled`),
+  KEY `idx_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客服FAQ问答表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cs_knowledge_change_log`
+--
+
+DROP TABLE IF EXISTS `cs_knowledge_change_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_knowledge_change_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `target_type` varchar(16) NOT NULL COMMENT '对象类型: DOC/FAQ/REBUILD',
+  `target_id` bigint NOT NULL DEFAULT '0' COMMENT '对象ID，重建时为0',
+  `action` varchar(32) NOT NULL COMMENT '动作: CREATE/UPDATE/DELETE/TOGGLE/REBUILD/INGEST',
+  `detail` varchar(1000) NOT NULL DEFAULT '' COMMENT '变更摘要',
+  `operator_id` int NOT NULL DEFAULT '0' COMMENT '操作人用户ID',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_target` (`target_type`,`target_id`),
+  KEY `idx_create` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识库变更记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cs_retrieval_test`
+--
+
+DROP TABLE IF EXISTS `cs_retrieval_test`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cs_retrieval_test` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '测试ID',
+  `query_text` varchar(500) NOT NULL COMMENT '查询文本',
+  `params` text NOT NULL COMMENT '检索参数 JSON',
+  `results` text NOT NULL COMMENT '检索结果 JSON（含各阶段分数）',
+  `operator_id` int NOT NULL DEFAULT '0' COMMENT '操作人',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '测试时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_create` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识库检索测试记录表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

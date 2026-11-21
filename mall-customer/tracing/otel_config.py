@@ -120,31 +120,3 @@ def trace_agent_call(agent_name: str) -> Callable:
 
         return wrapper
     return decorator
-
-
-class AgentMetrics:
-    """Agent调用指标收集器"""
-
-    def __init__(self):
-        self._call_counts: dict[str, int] = {}
-        self._total_duration: dict[str, float] = {}
-        self._error_counts: dict[str, int] = {}
-
-    def record_call(self, agent_name: str, duration_ms: float, success: bool):
-        self._call_counts[agent_name] = self._call_counts.get(agent_name, 0) + 1
-        self._total_duration[agent_name] = self._total_duration.get(agent_name, 0.0) + duration_ms
-        if not success:
-            self._error_counts[agent_name] = self._error_counts.get(agent_name, 0) + 1
-
-    def get_summary(self) -> dict[str, Any]:
-        summary = {}
-        for agent_name in self._call_counts:
-            calls = self._call_counts[agent_name]
-            total_ms = self._total_duration[agent_name]
-            errors = self._error_counts.get(agent_name, 0)
-            summary[agent_name] = {
-                "total_calls": calls,
-                "avg_duration_ms": total_ms / calls if calls > 0 else 0,
-                "error_rate": errors / calls if calls > 0 else 0,
-            }
-        return summary

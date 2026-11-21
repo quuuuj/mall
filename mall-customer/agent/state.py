@@ -24,3 +24,6 @@ class AgentState(TypedDict):
     ticket: dict[str, Any] | None
     # 本轮诉求需要登录才能办理（游客态），API 层据此发 login_required 帧
     login_required: bool
+    # 会话累计轮次。消息历史会被 trim_history 裁剪到固定窗口，无法从中反推总轮次，
+    # 因此单独计数；每轮由 trim_history 自增，超过上限即停止继续调用模型。
+    turn_count: int

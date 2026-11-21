@@ -6,7 +6,7 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.DeleteObjectsRequest;
 import com.qiujie.config.OssConfig;
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.service.OssService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
@@ -40,7 +40,7 @@ public class OssServiceImpl implements OssService {
         }
         Set<String> allowedExts = Set.of(".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp");
         if (!allowedExts.contains(ext.toLowerCase())) {
-            throw new ServiceException(BusinessStatusEnum.FILE_TYPE_NOT_ALLOWED);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "文件类型不允许，仅支持 jpg/jpeg/png/gif/webp/bmp 格式");
         }
         String fileName = (StrUtil.isNotBlank(dir) ? dir + "/" : "") + IdUtil.simpleUUID() + ext;
         return upload(file.getInputStream(), fileName);

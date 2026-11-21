@@ -134,6 +134,31 @@ class McpBackendClient:
             "limit": limit,
         })
 
+    async def update_ingest_status(self, doc_id: int, status: str,
+                                   chunk_count: int | None = None,
+                                   error_message: str | None = None) -> dict[str, Any]:
+        """回写文档处理状态（READY/FAILED）。"""
+        args: dict[str, Any] = {"docId": doc_id, "status": status}
+        if chunk_count is not None:
+            args["chunkCount"] = chunk_count
+        if error_message is not None:
+            args["errorMessage"] = error_message
+        return await self.call_tool("update_ingest_status", args)
+
+    async def increment_faq_hit(self, faq_id: int) -> dict[str, Any]:
+        """FAQ 命中计数 +1。"""
+        return await self.call_tool("increment_faq_hit", {"faqId": faq_id})
+
+    async def list_enabled_faqs(self) -> list[dict[str, Any]]:
+        """拉启用的 FAQ（全量重建用）。"""
+        data = await self.call_tool("list_enabled_faqs", {})
+        return data.get("faqs", [])
+
+    async def list_enabled_docs(self) -> list[dict[str, Any]]:
+        """拉启用的文档元数据（全量重建用）。"""
+        data = await self.call_tool("list_enabled_docs", {})
+        return data.get("docs", [])
+
     def _extract_text(self, result: Any) -> str:
         content = getattr(result, "content", []) or []
         for item in content:

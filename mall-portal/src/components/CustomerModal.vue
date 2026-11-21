@@ -283,6 +283,14 @@ const sendMessage = async () => {
       throw new Error(`请求失败: HTTP ${response.status}`)
     }
 
+    // 未登录等错误以 HTTP 200 + JSON 返回，不能按 SSE 继续读取
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('text/event-stream')) {
+      const data = await response.json().catch(() => ({}))
+      if (data.code === 40100) goLogin()
+      throw new Error(data.message || '客服响应失败')
+    }
+
     const reader = response.body.getReader()
     const decoder = new TextDecoder('utf-8')
     let buffer = ''

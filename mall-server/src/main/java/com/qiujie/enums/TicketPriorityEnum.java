@@ -12,7 +12,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum TicketPriorityEnum implements BaseEnum<Integer> {
+public enum TicketPriorityEnum implements DictEnum<Integer> {
 
     LOW(1, "低"),
     MEDIUM(2, "中"),
@@ -21,7 +21,7 @@ public enum TicketPriorityEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 
     public static TicketPriorityEnum of(Integer code) {
         for (TicketPriorityEnum value : values()) {

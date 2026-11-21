@@ -1,0 +1,6 @@
+# OCR 可选依赖 — 只有处理扫描件 PDF / 图片时才需要。
+# 单独列文件是为了让不需要 OCR 的部署跳过这几个重型包（paddlepaddle 数百 MB）。
+# 首次运行会从网络下载检测/识别模型，用 PADDLE_HOME 指定缓存目录避免重复下载。
+paddlepaddle>=3.0.0
+paddleocr>=3.0.0
+pypdfium2>=4.30.0

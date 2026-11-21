@@ -32,20 +32,17 @@ request.interceptors.response.use(response => {
   if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
     return response
   }
-  if (res.code !== 200) {
-    if (res.code === 400 || res.code === 500 || res.code === 1200) {
+  if (res.code !== 20000) {
+    if (res.code === 40100) {
       removeAuth()
       router.push('/login')
+    } else if (res.code === 40300) {
+      ElMessage({ message: res.message, type: 'error', duration: 5000 })
     }
     return Promise.reject(res.message)
   }
   return res
 }, error => {
-  if (error.response && error.response.status === 401) {
-    removeAuth()
-    router.push('/login')
-    return Promise.reject(error)
-  }
   ElMessage({ message: error.message || '网络错误', type: 'error', duration: 5000 })
   return Promise.reject(error)
 })

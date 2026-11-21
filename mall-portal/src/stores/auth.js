@@ -13,11 +13,15 @@ export const useAuthStore = defineStore('auth', () => {
     setAuth({ user: userVal })
   }
 
-  async function logout() {
-    try { await logoutApi() } catch {}
+  function clearAuth() {
     user.value = null
     removeAuth()
   }
 
-  return { user, isLogin, loginSuccess, logout }
+  async function logout() {
+    try { await logoutApi() } catch {}
+    clearAuth()
+  }
+
+  return { user, isLogin, loginSuccess, logout, clearAuth }
 })

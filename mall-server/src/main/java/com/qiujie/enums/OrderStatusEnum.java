@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum OrderStatusEnum implements BaseEnum<Integer> {
+public enum OrderStatusEnum implements DictEnum<Integer> {
 
     PENDING_PAY(0, "待支付"),
     PAID(1, "已支付"),
@@ -18,5 +18,5 @@ public enum OrderStatusEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

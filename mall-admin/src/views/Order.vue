@@ -11,7 +11,7 @@
         </el-form-item>
         <el-form-item label="状态" class="page-search-item">
           <el-select v-model="query.status" clearable multiple placeholder="请选择状态" collapse-tags class="w-200px">
-            <el-option v-for="item in enumStore.getOptions('orderStatus')" :key="item.code" :label="item.message" :value="item.code" />
+            <el-option v-for="item in enumStore.getOptions('orderStatus')" :key="item.code" :label="item.text" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="时间范围" class="page-search-item">

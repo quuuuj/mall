@@ -10,11 +10,11 @@ export const useEnumStore = defineStore('enum', {
     getOptions: (state) => (key) => state.enums?.[key] || [],
     getLabel: (state) => (key, code) => {
       const item = state.enums?.[key]?.find(e => e.code === code)
-      return item?.message || '-'
+      return item?.text || '-'
     },
     getMap: (state) => (key) => {
       const map = {}
-      state.enums?.[key]?.forEach(e => { map[e.code] = e.message })
+      state.enums?.[key]?.forEach(e => { map[e.code] = e.text })
       return map
     }
   },

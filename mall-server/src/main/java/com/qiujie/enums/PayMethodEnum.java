@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum PayMethodEnum implements BaseEnum<Integer> {
+public enum PayMethodEnum implements DictEnum<Integer> {
 
     UNKNOWN(0, "未知"),
     WECHAT(1, "微信"),
@@ -17,5 +17,5 @@ public enum PayMethodEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

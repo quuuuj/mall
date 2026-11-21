@@ -51,7 +51,7 @@ async function login() {
     loading.value = true
     try {
       const res = await apiLogin({ ...form, uuid: verificationUuid })
-      if (res.code === 200) {
+      if (res.code === 20000) {
         const user = res.data?.user || res.data
         setAuth({ user })
         userStore.setUser(user)

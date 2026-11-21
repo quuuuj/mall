@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum RoleEnum implements BaseEnum<Integer> {
+public enum RoleEnum implements DictEnum<Integer> {
 
     USER(0, "用户"),
     ADMIN(1, "管理员");
@@ -15,5 +15,5 @@ public enum RoleEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

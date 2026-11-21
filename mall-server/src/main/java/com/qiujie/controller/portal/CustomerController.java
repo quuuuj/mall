@@ -1,13 +1,12 @@
 package com.qiujie.controller.portal;
 
 import cn.dev33.satoken.stp.StpUtil;
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
+import com.qiujie.common.Response;
 import com.qiujie.entity.Message;
 import com.qiujie.entity.Session;
 import com.qiujie.service.MessageService;
 import com.qiujie.service.SessionService;
-import com.qiujie.util.CustomerSse;
+import com.qiujie.common.CustomerSse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,21 +29,21 @@ public class CustomerController {
 
     @Operation(summary = "获取当前用户的客服会话列表")
     @GetMapping
-    public ResponseDTO<List<Session>> listSessions() {
+    public Response<List<Session>> listSessions() {
         Integer userId = StpUtil.getLoginIdAsInt();
         return Response.success(sessionService.listUserSessions(userId));
     }
 
     @Operation(summary = "创建新会话")
     @PostMapping
-    public ResponseDTO<Session> createSession() {
+    public Response<Session> createSession() {
         Integer userId = StpUtil.getLoginIdAsInt();
         return Response.success(sessionService.create(userId));
     }
 
     @Operation(summary = "删除会话")
     @DeleteMapping("/{id}")
-    public ResponseDTO<Void> deleteSession(@PathVariable("id") Long id) {
+    public Response<Void> deleteSession(@PathVariable("id") Long id) {
         Integer userId = StpUtil.getLoginIdAsInt();
         sessionService.delete(id, userId);
         return Response.ok("删除会话成功");
@@ -52,7 +51,7 @@ public class CustomerController {
 
     @Operation(summary = "获取指定会话的历史消息")
     @GetMapping("/{sessionId}/messages")
-    public ResponseDTO<List<Message>> listMessages(@PathVariable("sessionId") Long sessionId) {
+    public Response<List<Message>> listMessages(@PathVariable("sessionId") Long sessionId) {
         Integer userId = StpUtil.getLoginIdAsInt();
         return Response.success(messageService.listMessagesBySessionId(sessionId, userId));
     }

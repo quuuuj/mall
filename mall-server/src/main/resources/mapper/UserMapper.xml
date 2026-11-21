@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qiujie.mapper.UserMapper">
+
+    <select id="queryByCode" resultType="com.qiujie.entity.User">
+        SELECT id, code, name, gender, role, pwd AS password, avatar, birthday, phone, address, remark, status
+        FROM sys_user
+        WHERE is_deleted = 0 AND code = #{code}
+    </select>
+
+    <select id="queryInfo" resultType="com.qiujie.entity.User">
+        SELECT id, code, name, gender, role, avatar, birthday, phone, address, remark, status
+        FROM sys_user
+        WHERE is_deleted = 0 AND id = #{id}
+    </select>
+
+    <select id="queryUserDeptVO" resultType="com.qiujie.entity.User">
+        SELECT id, code, name, gender, role, pwd AS password, avatar, birthday, phone, address, remark, status
+        FROM sys_user
+        WHERE is_deleted = 0
+    </select>
+
+</mapper>

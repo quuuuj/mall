@@ -8,7 +8,7 @@
         </el-form-item>
         <el-form-item label="状态" class="page-search-item">
           <el-select v-model="query.status" clearable placeholder="请选择状态" class="w-180px">
-            <el-option v-for="item in enumStore.getOptions('productStatus')" :key="item.code" :label="item.message" :value="item.code" />
+            <el-option v-for="item in enumStore.getOptions('productStatus')" :key="item.code" :label="item.text" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="分类" class="page-search-item">

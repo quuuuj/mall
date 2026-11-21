@@ -2,15 +2,14 @@ package com.qiujie.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.qiujie.entity.Category;
-import com.qiujie.exception.ServiceException;
 import com.qiujie.mapper.CategoryMapper;
 import com.qiujie.service.CategoryService;
-import com.qiujie.util.RedisUtil;
+import com.qiujie.cache.RedisUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import static com.qiujie.constants.RedisConstants.*;
+import static com.qiujie.common.RedisConstants.*;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {

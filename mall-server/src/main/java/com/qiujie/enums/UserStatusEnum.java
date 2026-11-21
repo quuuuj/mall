@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum UserStatusEnum implements BaseEnum<Integer> {
+public enum UserStatusEnum implements DictEnum<Integer> {
 
     DISABLED(0, "禁用"),
     ENABLED(1, "启用");
@@ -15,5 +15,5 @@ public enum UserStatusEnum implements BaseEnum<Integer> {
     @JsonValue
     @EnumValue
     private final Integer code;
-    private final String message;
+    private final String text;
 }

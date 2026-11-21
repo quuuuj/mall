@@ -2,6 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.qiujie.mapper.ProductMapper">
 
+    <update id="decrementStock">
+        UPDATE pms_product SET stock = stock - #{delta}
+        WHERE id = #{id} AND stock &gt;= #{delta}
+    </update>
+
+    <update id="incrementStock">
+        UPDATE pms_product SET stock = stock + #{delta} WHERE id = #{id}
+    </update>
+
     <resultMap id="productDetailMap" type="com.qiujie.entity.Product">
         <id property="id" column="id"/>
         <result property="name" column="name"/>

@@ -9,12 +9,12 @@
 
         <el-form-item label="性别" class="page-search-item">
           <el-select v-model="query.gender" clearable placeholder="请选择性别" class="w-180px">
-            <el-option v-for="item in enumStore.getOptions('gender')" :key="item.code" :label="item.message" :value="item.code" />
+            <el-option v-for="item in enumStore.getOptions('gender')" :key="item.code" :label="item.text" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" class="page-search-item">
           <el-select v-model="query.status" clearable placeholder="请选择状态" class="w-180px">
-            <el-option v-for="item in enumStore.getOptions('userStatus')" :key="item.code" :label="item.message" :value="item.code" />
+            <el-option v-for="item in enumStore.getOptions('userStatus')" :key="item.code" :label="item.text" :value="item.code" />
           </el-select>
         </el-form-item>
         <el-form-item label="注册时间" class="page-search-item">
@@ -90,7 +90,7 @@
             <el-form-item label="姓名" prop="name"><el-input v-model="form.name" /></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="性别"><el-select v-model="form.gender" clearable><el-option v-for="item in enumStore.getOptions('gender')" :key="item.code" :label="item.message" :value="item.code" /></el-select></el-form-item>
+            <el-form-item label="性别"><el-select v-model="form.gender" clearable><el-option v-for="item in enumStore.getOptions('gender')" :key="item.code" :label="item.text" :value="item.code" /></el-select></el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="手机号" prop="phone"><el-input v-model="form.phone" /></el-form-item>
@@ -105,7 +105,7 @@
             <el-form-item label="密码" prop="password"><el-input v-model="form.password" type="password" show-password /></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="状态"><el-select v-model="form.status"><el-option v-for="item in enumStore.getOptions('userStatus')" :key="item.code" :label="item.message" :value="item.code" /></el-select></el-form-item>
+            <el-form-item label="状态"><el-select v-model="form.status"><el-option v-for="item in enumStore.getOptions('userStatus')" :key="item.code" :label="item.text" :value="item.code" /></el-select></el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="地址"><el-input v-model="form.address" /></el-form-item>

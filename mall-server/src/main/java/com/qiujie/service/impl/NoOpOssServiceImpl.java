@@ -1,7 +1,7 @@
 package com.qiujie.service.impl;
 
 import com.qiujie.enums.BusinessStatusEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.service.OssService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
@@ -20,32 +20,32 @@ public class NoOpOssServiceImpl implements OssService {
 
     @Override
     public String upload(MultipartFile file, String dir) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override
     public String upload(InputStream inputStream, String fileName) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override
     public String getUrl(String fileName, long expireMs) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override
     public String getUrl(String fileName) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override
     public void delete(String fileName) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override
     public void deleteBatch(List<String> fileNames) {
-        throw new ServiceException(BusinessStatusEnum.ERROR);
+        throw new BusinessException(BusinessStatusEnum.SERVER_ERROR, "文件服务未配置");
     }
 
     @Override

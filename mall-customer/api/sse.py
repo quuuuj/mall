@@ -46,11 +46,17 @@ def encode_error(message: str = FALLBACK_ERROR_MESSAGE) -> str:
     return encode_event(ERROR, message=message)
 
 
+def chunk_text(text: str, chunk_size: int = 4) -> Iterator[str]:
+    """把一段无模型流的文本切成片段（模板话术、工单回复）。"""
+    for i in range(0, len(text), chunk_size):
+        yield text[i:i + chunk_size]
+
+
 def token_frames(text: str, chunk_size: int = 4) -> Iterator[str]:
-    """把一段无模型流的文本（模板话术、工单回复）切成 token 事件序列。
+    """把一段无模型流的文本切成 token 事件序列。
 
     模型产出的真流式走 api.main.stream_reply：带 answer_stream 标签的
     模型分块直接映射为 token 帧，不再经过这里切块。
     """
-    for i in range(0, len(text), chunk_size):
-        yield encode_token(text[i:i + chunk_size])
+    for piece in chunk_text(text, chunk_size):
+        yield encode_token(piece)

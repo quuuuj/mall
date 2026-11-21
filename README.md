@@ -19,17 +19,17 @@
 | **mall-server** | 后端服务，REST API | Spring Boot 3.2.5 + MyBatis-Plus + MySQL + Redis + RabbitMQ + Elasticsearch + Sa-Token | 8800 |
 | **mall-admin** | 管理后台前端 | Vue 3.4 + Element Plus + Pinia + ECharts + UnoCSS | 3002 |
 | **mall-portal** | 用户门户前端 | Vue 3.4 + Element Plus + Pinia | 3001 |
-| **mall-customer** | 多 Agent 智能客服（独立服务） | LangGraph + LangChain + FastAPI + Redis + FAISS | 8000 |
+| **mall-customer** | 多 Agent 智能客服（独立服务） | LangGraph + LangChain + FastAPI + Redis + Qdrant + PaddleOCR | 8000 |
 
 > 支付为**模拟支付**：订单提交后本地生成支付流水号，未接入真实第三方支付渠道。
 
 ## 核心亮点
 
 - ⚡ **秒杀高并发方案**：Redis Lua 脚本原子扣减库存防超卖；RabbitMQ 消息削峰异步下单；消费失败自动重试（最多 3 次），超限回滚库存；用户级防重与消费幂等
-- 🤖 **多 Agent 智能客服**：基于 LangGraph 编排 Supervisor 路由、知识库 RAG、订单只读查询与工单处理 Agent，出口合规审查兜底；Python 经 MCP 调用后端工具，工单落库并回流会话；全链路 SSE 流式响应，会话持久化与历史上下文管理
+- 🤖 **多 Agent 智能客服**：基于 LangGraph 编排 Supervisor 路由、FAQ 前置短路 + 混合检索（向量+BM25→RRF→精排→阈值判定）、订单只读查询与工单处理 Agent，出口合规审查兜底；知识库在管理后台以上传文档方式维护（解析→清洗→分块→向量化入库，扫描件走 PaddleOCR），并提供检索测试台对比参数效果；Python 经 MCP 调用后端工具，工单落库并回流会话；全链路 SSE 流式响应，会话持久化与历史上下文管理
 - ⏰ **订单超时取消双保险**：RabbitMQ 延迟队列（TTL 10 分钟）到期自动取消订单并恢复库存，前端倒计时轮询兜底
 - 🔍 **Elasticsearch 商品搜索**：商品文档同步 + 定时增量同步任务，关键词/分类检索
-- 🔐 **认证与安全**：Sa-Token 双端登录态隔离、同端互踢（同账号新登录踢掉旧会话）；`@RateLimit` 注解 + Redis 滑动窗口限流；Redisson 分布式锁；布隆过滤器防缓存穿透
+- 🔐 **认证与安全**：Sa-Token 双端登录态隔离、同端互踢（同账号新登录踢掉旧会话）；`@RateLimit` 注解 + Redis 滑动窗口限流；Redis SETNX 分布式锁；布隆过滤器防缓存穿透
 - 🗄 **多级缓存**：Redis + Caffeine 本地缓存，首页、商品、秒杀场次等热点数据自动缓存与失效
 - 📊 **管理看板**：ECharts 数据可视化——销售趋势、分类销量 TOP5、订单状态概览
 - 📁 **Excel 导入导出**：基于 POI 的注解式表格导入导出
@@ -107,7 +107,6 @@ flowchart TD
 | RabbitMQ | 3 | 秒杀异步下单 / 订单超时取消 |
 | Elasticsearch | 7.17 | 商品全文搜索 |
 | Sa-Token | 1.39 | 双端认证 / 会话管理 |
-| Redisson | 3.24 | 分布式锁 |
 | springdoc-openapi | 2.3 | API 文档（Swagger UI） |
 
 ### 智能客服（mall-customer）
@@ -118,7 +117,9 @@ flowchart TD
 | LangChain | 0.3+ | LLM 交互与 Prompt 工程 |
 | FastAPI | 0.115+ | 高性能 Web 框架（SSE 流式聊天、REST API） |
 | Redis | 7 | 短期会话记忆（多轮对话上下文） |
-| FAISS | 1.9+ | 长期向量记忆与知识库检索 |
+| Qdrant | 1.12+ | 知识库向量检索（dense + BM25 sparse 双向量混合召回） |
+| jieba | 0.42+ | 中文分词，生成 BM25 稀疏向量 |
+| PaddleOCR | 3.x | 扫描件 PDF / 图片的 OCR 文字识别（可选依赖） |
 
 ### 前端
 
@@ -151,6 +152,7 @@ flowchart LR
         R[(Redis 7<br/>:6379)]
         Q[RabbitMQ 3<br/>:5672]
         E[(Elasticsearch 7<br/>:19200)]
+        V[(Qdrant<br/>:6333)]
     end
 
     B --> P
@@ -159,6 +161,7 @@ flowchart LR
     A -->|/admin-api 代理| S
     S -->|WebClient SSE| C
     C --> R
+    C --> V
     S --> M
     S --> R
     S --> Q
@@ -201,10 +204,13 @@ mall/
 └── mall-customer/                # 多 Agent 智能客服（Python FastAPI，端口 8000）
     ├── agent/                    # LangGraph 工作流：节点文件与节点名同名，graph.py 负责编排
     ├── api/                      # FastAPI 入口与 SSE 协议编码
-    ├── knowledge_base/           # 电商政策知识库（25 篇 markdown，启动时向量化并落盘索引）
+    ├── knowledge_base/           # 初始电商政策文档（历史种子，线上知识库以 MySQL + Qdrant 为准）
     ├── eval/                     # RAG 检索评测（42 条用例，hit@3 与空召回准确率）
-    ├── memory/                   # 工作记忆、短期（Redis checkpoint）与长期（FAISS 向量库）记忆
-    ├── tools/                    # MCP 客户端（建单、订单只读查询经 /mcp 工具调用）
+    ├── memory/                   # 工作记忆与短期记忆（Redis checkpoint）
+    ├── document/                 # 上传文档处理流水线：解析 → 清洗 → 分块
+    ├── retrieval/                # 混合检索（向量+BM25→RRF→rerank→阈值）与 rerank 客户端
+    ├── storage/                  # Qdrant 存储与 embedding 封装
+    ├── tools/                    # MCP 客户端（建单、订单查询、知识库回写经 /mcp 工具调用）
     └── tracing/                  # OpenTelemetry 全链路追踪
 ```
 
@@ -261,11 +267,13 @@ npm run dev
 ```bash
 cd mall-customer
 pip install -r requirements.txt
-cp .env.example .env    # 需配置 MODEL_NAME、OPENAI_API_KEY、OPENAI_BASE_URL 与 INTERNAL_API_TOKEN
+# 处理扫描件 PDF / 图片时才需要 OCR 依赖（首次运行会下载约 1-2GB 模型）
+pip install -r requirements-ocr.txt
+cp .env.example .env    # 需配置 MODEL_NAME、OPENAI_API_KEY、OPENAI_BASE_URL、RERANK_* 与 INTERNAL_API_TOKEN
 python -m api.main
 ```
 
-`INTERNAL_API_TOKEN` 需与 `mall-server` 的 `MALL_CUSTOMER_TOKEN` 一致，否则对话请求会被拒绝。该服务只接受带 `Authorization: Bearer <token>` 的调用。
+`INTERNAL_API_TOKEN` 需与 `mall-server` 的 `MALL_CUSTOMER_TOKEN` 一致，否则对话请求会被拒绝。该服务只接受带 `Authorization: Bearer <token>` 的调用。向量检索依赖本地 Qdrant（docker-compose 中的 `qdrant` 服务，端口 6333）。
 
 访问：http://localhost:8000/docs（Swagger UI 文档）
 

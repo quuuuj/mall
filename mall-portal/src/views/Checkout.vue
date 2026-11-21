@@ -221,7 +221,7 @@ const handleSubmit = async () => {
     showSuccess.value = true
     redirectTimer.value = setTimeout(() => router.push('/orders'), 3000)
   } catch (e) {
-    if (e?.code === 1610 || (e?.message && e.message.includes('收货地址'))) {
+    if (e?.code === 40010 || (e?.message && e.message.includes('收货地址'))) {
       ElMessage.error('请先添加收货地址')
     } else {
       ElMessage.error(e?.message || '下单失败')

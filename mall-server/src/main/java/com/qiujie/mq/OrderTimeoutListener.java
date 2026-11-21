@@ -7,8 +7,8 @@ import com.qiujie.enums.OrderStatusEnum;
 import com.qiujie.mapper.OrderItemMapper;
 import com.qiujie.mapper.OrderMapper;
 import com.qiujie.mapper.ProductMapper;
-import com.qiujie.util.RedisUtil;
-import com.qiujie.util.SalesRankService;
+import com.qiujie.cache.RedisUtil;
+import com.qiujie.cache.SalesRankCache;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,16 +34,16 @@ public class OrderTimeoutListener {
     private final OrderItemMapper orderItemMapper;
     private final ProductMapper productMapper;
     private final RedisUtil redisUtil;
-    private final SalesRankService salesRankService;
+    private final SalesRankCache salesRankCache;
 
     public OrderTimeoutListener(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
                                  ProductMapper productMapper,
-                                 RedisUtil redisUtil, SalesRankService salesRankService) {
+                                 RedisUtil redisUtil, SalesRankCache salesRankCache) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
         this.redisUtil = redisUtil;
-        this.salesRankService = salesRankService;
+        this.salesRankCache = salesRankCache;
     }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_TIMEOUT_QUEUE)
@@ -80,7 +80,7 @@ public class OrderTimeoutListener {
 
     private void adjustSalesRank(List<OrderItem> items) {
         for (OrderItem item : items) {
-            salesRankService.recordCancel(item.getProductId(), item.getAmount());
+            salesRankCache.recordCancel(item.getProductId(), item.getAmount());
         }
     }
 

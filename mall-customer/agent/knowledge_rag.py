@@ -1,19 +1,24 @@
-"""knowledge_rag — 电商政策知识库问答（RAG）。
+"""knowledge_rag — 电商政策知识库问答（新混合检索版）。
 
-流程：Query 改写 → 向量检索 → 重排 → 生成回答。
-检索为空时不给编造内容，而是引导用户从四类工单中选择一项提交。
+流程：FAQ 前置短路 → 混合召回(向量+BM25) → RRF 融合 → 精排 → 阈值判定 → 生成。
+判定逻辑与检索测试台共用 HybridRetriever，保证测试与线上行为一致。
+
+空召回或精排分低于阈值时拒答，引导四类工单，不调用生成模型。
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from agent.streaming import stream_text
-from memory.long_term_memory import LongTermMemory
+from retrieval.hybrid import HybridRetriever
 from tracing.otel_config import trace_agent_call
+
+logger = logging.getLogger(__name__)
 
 # 引导建单的四类工单；阈值拦下的空召回与模型判定「文档不足」共用同一份话术
 TICKET_GUIDANCE = """- 退款退货
@@ -36,14 +41,7 @@ RAG_SYSTEM_PROMPT = f"""你是电商平台的在线客服，负责依据平台�
 结论 → 必要说明 → 「来源：<文档标题>」
 """
 
-QUERY_REWRITE_PROMPT = """把用户的口语化问题改写成适合向量检索的查询语句。
-保留核心语义，补全被省略的主体（如「几天到」→「物流配送时效」）。
-只输出改写后的查询，不要额外说明。
-
-用户问题: {query}
-"""
-
-# 空召回时的引导话术：给出四类工单作为明确下一步
+# 空召回 / 低分拒答共用话术
 EMPTY_RECALL_REPLY = (
     "这个问题我在平台政策里没有找到明确依据，不好凭印象回答你。\n\n"
     "可以帮你转成人工工单跟进，选一类更接近的：\n"
@@ -53,99 +51,69 @@ EMPTY_RECALL_REPLY = (
 
 
 class KnowledgeRagAgent:
-    """知识检索节点 — 实现完整 RAG 流程"""
+    """知识检索节点 — FAQ 前置 + 混合检索 + 精排判定。"""
 
-    def __init__(self, llm: ChatOpenAI, long_term_memory: LongTermMemory | None = None):
+    def __init__(
+        self,
+        llm: ChatOpenAI,
+        retriever: HybridRetriever,
+        mcp_client: Any | None = None,
+    ):
         self.llm = llm
-        self.long_term_memory = long_term_memory or LongTermMemory()
+        self.retriever = retriever
+        self.mcp_client = mcp_client
 
-    @trace_agent_call("rag_query_rewrite")
-    async def rewrite_query(self, original_query: str) -> str:
-        """Query 改写：口语化问题 → 检索友好查询；失败时退回原问题"""
-        try:
-            response = await self.llm.ainvoke(
-                [HumanMessage(content=QUERY_REWRITE_PROMPT.format(query=original_query))]
-            )
-            rewritten = (response.content or "").strip()
-            return rewritten or original_query
-        except Exception:
-            return original_query
-
-    @trace_agent_call("rag_retrieve")
-    async def retrieve_documents(self, query: str, top_k: int = 5) -> list[dict]:
-        """向量检索；低于相似度阈值的召回已被 LongTermMemory 过滤"""
-        return self.long_term_memory.search(query, top_k=top_k)
-
-    @trace_agent_call("rag_rerank")
-    async def rerank_documents(
-        self, query: str, documents: list[dict], top_k: int = 3
-    ) -> list[dict]:
-        """按相关性重排，提升首条文档的命中率；解析失败退回按分数排序"""
-        if len(documents) <= 1:
-            return documents[:top_k]
-
-        doc_summaries = "\n".join(
-            f"[{i}] {(doc.get('metadata') or {}).get('title') or doc.get('source', '')}: "
-            f"{doc.get('content', '')[:200]}"
-            for i, doc in enumerate(documents)
-        )
-
-        messages = [
-            SystemMessage(content="你是文档相关性排序助手，只输出索引号。"),
-            HumanMessage(content=(
-                f"用户问题: {query}\n\n"
-                f"候选文档:\n{doc_summaries}\n\n"
-                f"按相关性从高到低返回最相关的 {top_k} 个文档索引，逗号分隔，如: 0,2,4"
-            )),
-        ]
-
-        try:
-            response = await self.llm.ainvoke(messages)
-            indices = [int(i.strip()) for i in response.content.split(",") if i.strip()]
-            reranked = [documents[i] for i in indices if 0 <= i < len(documents)]
-            return reranked[:top_k] or documents[:top_k]
-        except Exception:
-            return documents[:top_k]
-
-    @trace_agent_call("rag_generate")
-    async def generate_answer(self, query: str, context_docs: list[dict]) -> str:
-        """基于检索文档生成回答；空召回走工单引导话术"""
-        if not context_docs:
-            return EMPTY_RECALL_REPLY
-
-        context = "\n\n---\n\n".join(
-            f"文档: {(doc.get('metadata') or {}).get('title') or doc.get('source', '未知')}\n"
-            f"内容: {doc.get('content', '')}"
-            for doc in context_docs
-        )
-
-        messages = [
-            SystemMessage(content=RAG_SYSTEM_PROMPT),
-            HumanMessage(content=(
-                f"用户问题: {query}\n\n"
-                f"参考文档:\n{context}"
-            )),
-        ]
-
-        # 用户可见产出：流式生成，API 层按 answer_stream 标签转成 token 帧
-        return await stream_text(self.llm, messages)
-
-    @trace_agent_call("knowledge_rag")
+    @trace_agent_call("knowledge_rag_hybrid")
     async def process(self, state: dict[str, Any]) -> dict[str, Any]:
-        """完整 RAG 流程（作为 Graph 节点）"""
+        """完整流程：FAQ 前置 → 混合检索 → 判定 → 回答/拒答。"""
         messages = state.get("messages", [])
         if not messages:
             return {}
 
-        original_query = messages[-1].content
-        rewritten_query = await self.rewrite_query(original_query)
-        raw_docs = await self.retrieve_documents(rewritten_query, top_k=5)
-
-        if not raw_docs:
-            # 空召回不调生成模型，直接用引导话术，避免编造
+        query = messages[-1].content
+        if not isinstance(query, str) or not query.strip():
             return {"messages": [AIMessage(content=EMPTY_RECALL_REPLY)]}
 
-        reranked_docs = await self.rerank_documents(rewritten_query, raw_docs, top_k=3)
-        answer = await self.generate_answer(original_query, reranked_docs)
+        try:
+            result = await self.retriever.retrieve(query)
+        except Exception:
+            logger.exception("混合检索失败，降级为拒答")
+            return {"messages": [AIMessage(content=EMPTY_RECALL_REPLY)]}
 
+        path = result.get("path")
+
+        if path == "faq":
+            # FAQ 标准答案：直接返回，累加命中计数（失败不影响回答）
+            answer = result.get("answer") or EMPTY_RECALL_REPLY
+            await self._count_faq_hit(result.get("faq_id"))
+            return {"messages": [AIMessage(content=answer)]}
+
+        if path == "reject":
+            # 空召回或精排分不足：拒答，不调用生成模型
+            return {"messages": [AIMessage(content=EMPTY_RECALL_REPLY)]}
+
+        # path == "rag_answer"：用精排片段生成回答
+        docs = result.get("rag_candidates") or []
+        answer = await self._generate(query, docs)
         return {"messages": [AIMessage(content=answer)]}
+
+    async def _generate(self, query: str, candidates: list[dict]) -> str:
+        """基于精排片段生成回答。"""
+        context = "\n\n---\n\n".join(
+            f"文档: {c['payload'].get('title') or c['payload'].get('source') or '未知'}\n"
+            f"内容: {c['payload'].get('content', '')}"
+            for c in candidates
+        )
+        messages = [
+            SystemMessage(content=RAG_SYSTEM_PROMPT),
+            HumanMessage(content=f"用户问题: {query}\n\n参考文档:\n{context}"),
+        ]
+        return await stream_text(self.llm, messages)
+
+    async def _count_faq_hit(self, faq_id: Any) -> None:
+        if not faq_id or self.mcp_client is None:
+            return
+        try:
+            await self.mcp_client.increment_faq_hit(int(faq_id))
+        except Exception as e:
+            logger.warning("FAQ 命中计数失败: %s", e)

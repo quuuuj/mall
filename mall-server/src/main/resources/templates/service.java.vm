@@ -21,21 +21,21 @@ public class  ${table.serviceName} extends ServiceImpl<${entity}Mapper,${entity}
 #end
 
 
-public ResponseDTO add(${entity} ${table.entityPath}){
+public Response add(${entity} ${table.entityPath}){
         if(save(${table.entityPath})){
         return Response.success();
         }
         return Response.error();
         }
 
-public ResponseDTO delete(Integer id){
+public Response delete(Integer id){
         if(removeById(id)){
         return Response.success();
         }
         return Response.error();
         }
 
-public ResponseDTO deleteBatch(List<Integer> ids){
+public Response deleteBatch(List<Integer> ids){
         if(removeBatchByIds(ids)){
         return Response.success();
         }
@@ -43,7 +43,7 @@ public ResponseDTO deleteBatch(List<Integer> ids){
         }
 
 
-public ResponseDTO edit(${entity} ${table.entityPath}){
+public Response edit(${entity} ${table.entityPath}){
         if(updateById(${table.entityPath})){
         return Response.success();
         }
@@ -51,7 +51,7 @@ public ResponseDTO edit(${entity} ${table.entityPath}){
         }
 
 
-public ResponseDTO query(Integer id){
+public Response query(Integer id){
     ${entity} ${table.entityPath} =getById(id);
         if(${table.entityPath} !=null){
         return Response.success(${table.entityPath});
@@ -59,13 +59,13 @@ public ResponseDTO query(Integer id){
         return Response.error();
         }
 
-public ResponseDTO queryAll(){
+public Response queryAll(){
         List<${entity}> list=list();
         return Response.success(list);
         }
 
 
-public ResponseDTO list(Integer current,Integer size,String name){
+public Response list(Integer current,Integer size,String name){
         IPage<${entity}> config=new Page<>(current,size);
         QueryWrapper<${entity}> wrapper=null;
         if(name!=""&&name!=null){
@@ -99,7 +99,7 @@ public void export(HttpServletResponse response,String filename)throws IOExcepti
  * @param file
  * @return
  */
-public ResponseDTO imp(MultipartFile file)throws IOException{
+public Response imp(MultipartFile file)throws IOException{
         InputStream inputStream=file.getInputStream();
         ExcelReader reader=ExcelUtil.getReader(inputStream);
         List<${entity}> list=reader.readAll(${entity}.class);

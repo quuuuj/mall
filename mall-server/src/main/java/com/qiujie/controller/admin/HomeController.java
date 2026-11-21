@@ -1,10 +1,9 @@
 package com.qiujie.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
+import com.qiujie.common.Response;
 import com.qiujie.service.HomeService;
-import com.qiujie.util.SalesRankService;
+import com.qiujie.cache.SalesRankCache;
 import com.qiujie.vo.CategorySalesVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,34 +19,34 @@ import java.util.Map;
 public class HomeController {
 
     private final HomeService homeService;
-    private final SalesRankService salesRankService;
+    private final SalesRankCache salesRankCache;
 
-    public HomeController(HomeService homeService, SalesRankService salesRankService) {
+    public HomeController(HomeService homeService, SalesRankCache salesRankCache) {
         this.homeService = homeService;
-        this.salesRankService = salesRankService;
+        this.salesRankCache = salesRankCache;
     }
 
     @Operation(summary = "商品销量排行榜（Top 5）")
     @GetMapping("/product-sales-rank")
-    public ResponseDTO<List<Map<String, Object>>> productSalesRank() {
-        return Response.success(salesRankService.getTop5());
+    public Response<List<Map<String, Object>>> productSalesRank() {
+        return Response.success(salesRankCache.getTop5());
     }
 
     @Operation(summary = "首页统计")
     @GetMapping("/count")
-    public ResponseDTO<Map<String, Object>> count() {
+    public Response<Map<String, Object>> count() {
         return Response.success(this.homeService.getCount());
     }
 
     @Operation(summary = "趋势数据（最近N天的每日订单数和销售额）")
     @GetMapping("/trend")
-    public ResponseDTO<List<Map<String, Object>>> trend(@RequestParam(defaultValue = "7") Integer days) {
+    public Response<List<Map<String, Object>>> trend(@RequestParam(defaultValue = "7") Integer days) {
         return Response.success(this.homeService.getTrend(days));
     }
 
     @Operation(summary = "分类销量排行")
     @GetMapping("/category-sales")
-    public ResponseDTO<List<CategorySalesVO>> categorySales() {
+    public Response<List<CategorySalesVO>> categorySales() {
         return Response.success(this.homeService.getCategorySales());
     }
 }

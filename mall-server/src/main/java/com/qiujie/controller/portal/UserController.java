@@ -1,8 +1,7 @@
 package com.qiujie.controller.portal;
 
 import cn.hutool.core.util.StrUtil;
-import com.qiujie.dto.Response;
-import com.qiujie.dto.ResponseDTO;
+import com.qiujie.common.Response;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.entity.User;
 import com.qiujie.service.OssService;
@@ -32,7 +31,7 @@ public class UserController {
 
     @Operation(summary = "获取用户信息")
     @GetMapping("/info")
-    public ResponseDTO<User> info() {
+    public Response<User> info() {
         return Response.success(userService.queryInfo(StpUtil.getLoginIdAsInt()));
     }
 
@@ -62,15 +61,15 @@ public class UserController {
 
     @Operation(summary = "更新用户信息")
     @PutMapping("/update")
-    public ResponseDTO<User> update(@RequestBody Map<String, String> params) {
+    public Response<User> update(@RequestBody Map<String, String> params) {
         return Response.success(userService.updateInfo(StpUtil.getLoginIdAsInt(), params));
     }
 
     @Operation(summary = "更新头像")
     @PostMapping("/avatar")
-    public ResponseDTO<Map<String, String>> updateAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+    public Response<Map<String, String>> updateAvatar(@RequestParam("file") MultipartFile file) throws IOException {
         if (file.isEmpty()) {
-            return Response.error(BusinessStatusEnum.FILE_EMPTY);
+            return Response.error(BusinessStatusEnum.PARAM_ERROR.getCode(), "文件不能为空");
         }
         return Response.success(userService.updateAvatar(StpUtil.getLoginIdAsInt(), file));
     }

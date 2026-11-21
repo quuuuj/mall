@@ -9,14 +9,14 @@ import com.qiujie.entity.*;
 import com.qiujie.enums.BusinessStatusEnum;
 import com.qiujie.enums.OrderStatusEnum;
 import com.qiujie.enums.PayMethodEnum;
-import com.qiujie.exception.ServiceException;
+import com.qiujie.exception.BusinessException;
 import com.qiujie.mapper.*;
 import com.qiujie.service.OrderService;
 import com.qiujie.config.RabbitMQConfig;
 import com.qiujie.mq.OrderTimeoutMessage;
-import com.qiujie.constants.RedisConstants;
-import com.qiujie.util.RedisUtil;
-import com.qiujie.util.SalesRankService;
+import com.qiujie.common.RedisConstants;
+import com.qiujie.cache.RedisUtil;
+import com.qiujie.cache.SalesRankCache;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final ProductMapper productMapper;
     private final ProductImgMapper productImgMapper;
     private final RedisUtil redisUtil;
-    private final SalesRankService salesRankService;
+    private final SalesRankCache salesRankCache;
 
     @Autowired(required = false)
     private RabbitTemplate rabbitTemplate;
@@ -52,21 +52,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public OrderServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
                             CartMapper cartMapper, ProductMapper productMapper,
                             ProductImgMapper productImgMapper, RedisUtil redisUtil,
-                            SalesRankService salesRankService) {
+                            SalesRankCache salesRankCache) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.cartMapper = cartMapper;
         this.productMapper = productMapper;
         this.productImgMapper = productImgMapper;
         this.redisUtil = redisUtil;
-        this.salesRankService = salesRankService;
+        this.salesRankCache = salesRankCache;
     }
 
     @Transactional
     public Order createFromCart(Integer userId, Map<String, Object> params) {
         Integer addressId = (Integer) params.get("addressId");
         if (addressId == null || addressId <= 0) {
-            throw new ServiceException(BusinessStatusEnum.ADDRESS_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.ADDRESS_NOT_EXIST);
         }
         Integer payMethodCode = (Integer) params.getOrDefault("payMethod", 0);
         PayMethodEnum payMethod = PayMethodEnum.values()[payMethodCode];
@@ -75,7 +75,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         String lockKey = "order:lock:" + userId;
         Boolean locked = redisUtil.setIfAbsent(lockKey, "1", 5);
         if (!Boolean.TRUE.equals(locked)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_IN_PROGRESS);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "您的订单正在处理中，请勿重复提交");
         }
         try {
             return doCreateFromCart(userId, params, addressId, payMethod);
@@ -105,7 +105,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             }
         }
         if (selectedCarts.isEmpty()) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_EMPTY);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "请选择要购买的商品");
         }
 
         // 批量查询商品，避免 N+1
@@ -119,10 +119,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         for (Cart cart : selectedCarts) {
             Product product = productMap.get(cart.getProductId());
             if (product == null) {
-                throw new ServiceException(BusinessStatusEnum.PRODUCT_STOCK_INSUFFICIENT.getCode(), "商品[" + cart.getProductName() + "]不存在");
+                throw new BusinessException(BusinessStatusEnum.NOT_FOUND.getCode(), "商品[" + cart.getProductName() + "]不存在");
             }
             if (productMapper.decrementStock(product.getId(), cart.getAmount()) == 0) {
-                throw new ServiceException(BusinessStatusEnum.PRODUCT_STOCK_INSUFFICIENT.getCode(), "商品[" + cart.getProductName() + "]库存不足");
+                throw new BusinessException(BusinessStatusEnum.CONFLICT.getCode(), "商品[" + cart.getProductName() + "]库存不足");
             }
             order.setTotalAmount(order.getTotalAmount().add(product.getPrice().multiply(new BigDecimal(cart.getAmount()))));
             addOrderItem(order, product.getId(), product.getName(), product.getPrice(), cart.getProductImg(), cart.getAmount());
@@ -142,11 +142,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Integer productId = (Integer) params.get("productId");
         Integer amount = (Integer) params.getOrDefault("amount", 1);
         if (productId == null || amount == null || amount < 1) {
-            throw new ServiceException(BusinessStatusEnum.PARAM_ERROR);
+            throw new BusinessException(BusinessStatusEnum.PARAM_ERROR, "商品或数量不合法");
         }
 
         if (productMapper.decrementStock(productId, amount) == 0) {
-            throw new ServiceException(BusinessStatusEnum.PRODUCT_STOCK_INSUFFICIENT);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "商品库存不足");
         }
 
         Product product = productMapper.selectById(productId);
@@ -167,10 +167,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public void pay(Integer userId, Integer id, Integer payMethod) {
         Order order = orderMapper.selectById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         if (order.getStatus() != OrderStatusEnum.PENDING_PAY) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_STATUS_ERROR);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "订单状态不正确");
         }
         order.setStatus(OrderStatusEnum.PAID);
         order.setPaymentTime(LocalDateTime.now());
@@ -194,7 +194,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Order detail(Integer userId, Integer id) {
         Order order = orderMapper.selectDetailById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         return order;
     }
@@ -202,14 +202,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public Order detailByOrderSn(Integer userId, String orderSn) {
         if (userId == null || orderSn == null || orderSn.isBlank()) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         Order order = orderMapper.selectOne(com.baomidou.mybatisplus.core.toolkit.Wrappers.<Order>lambdaQuery()
                 .eq(Order::getUserId, userId)
                 .eq(Order::getOrderSn, orderSn.trim()));
         if (order == null) {
             // 归属不符与不存在同样处理，不泄露他人订单是否存在
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         order.setItems(loadItems(order.getId()));
         return order;
@@ -238,7 +238,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public void delete(Integer userId, Integer id) {
         Order order = orderMapper.selectById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         removeById(id);
     }
@@ -272,10 +272,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public void cancel(Integer id) {
         Order order = getById(id);
         if (order == null) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         if (order.getStatus() != OrderStatusEnum.PENDING_PAY) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_CANCEL_DENIED);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "只有待支付订单可以取消");
         }
         order.setStatus(OrderStatusEnum.CANCELLED);
         updateById(order);
@@ -292,10 +292,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public void receipt(Integer userId, Integer id) {
         Order order = getById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         if (order.getStatus() != OrderStatusEnum.SHIPPED) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_STATUS_ERROR);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "订单状态不正确");
         }
         order.setStatus(OrderStatusEnum.COMPLETED);
         order.setReceiptTime(LocalDateTime.now());
@@ -305,10 +305,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public void updateRecipient(Integer userId, Integer id, String recipientName, String recipientPhone, String recipientAddress, Integer expressDelivery) {
         Order order = getById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_NOT_EXIST);
+            throw new BusinessException(BusinessStatusEnum.NOT_FOUND, "订单不存在");
         }
         if (order.getStatus() != OrderStatusEnum.PENDING_PAY) {
-            throw new ServiceException(BusinessStatusEnum.ORDER_STATUS_ERROR);
+            throw new BusinessException(BusinessStatusEnum.CONFLICT, "订单状态不正确");
         }
         order.setRecipientName(recipientName);
         order.setRecipientPhone(recipientPhone);
@@ -423,9 +423,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                             .eq("order_id", orderId));
             for (OrderItem item : items) {
                 if (delta > 0) {
-                    salesRankService.recordSale(item.getProductId(), item.getAmount());
+                    salesRankCache.recordSale(item.getProductId(), item.getAmount());
                 } else {
-                    salesRankService.recordCancel(item.getProductId(), item.getAmount());
+                    salesRankCache.recordCancel(item.getProductId(), item.getAmount());
                 }
             }
             return;
@@ -436,9 +436,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             int productId = (int) item.get("productId");
             int amount = (int) item.get("amount");
             if (delta > 0) {
-                salesRankService.recordSale(productId, amount);
+                salesRankCache.recordSale(productId, amount);
             } else {
-                salesRankService.recordCancel(productId, amount);
+                salesRankCache.recordCancel(productId, amount);
             }
         }
     }
