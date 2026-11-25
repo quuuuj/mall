@@ -1,0 +1,21 @@
+langgraph>=0.3.0
+langgraph-checkpoint-redis>=0.5.0
+langchain>=0.3.0
+langchain-openai>=0.3.0
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.10.0
+redis>=5.2.0
+faiss-cpu>=1.9.0
+opentelemetry-api>=1.29.0
+opentelemetry-sdk>=1.29.0
+opentelemetry-exporter-otlp>=1.29.0
+# MCP 客户端：Agent 经 /mcp 调用 mall-server 的业务工具
+mcp>=2.0.0
+httpx>=0.28.0
+python-dotenv>=1.0.0
+tiktoken>=0.8.0
+numpy>=1.26.0
+# 知识库：Qdrant 向量库 + jieba 中文分词（BM25 sparse 向量）
+qdrant-client>=1.9.0
+jieba>=0.42.1
