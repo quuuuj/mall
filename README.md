@@ -11,6 +11,7 @@
 - **用户门户（商城前台）**：https://mall.qiujie.net.cn
 - **管理后台（运营端）**：https://mall.qiujie.net.cn/admin/
 - **默认测试账号**：用户名 `admin` / 密码 `123456`（登录页已预填）
+- **项目文档**： 自由的猎人（公众号）
 
 ## 项目介绍
 
@@ -274,13 +275,6 @@ python -m api.main
 ```
 
 `INTERNAL_API_TOKEN` 需与 `mall-server` 的 `MALL_CUSTOMER_TOKEN` 一致，否则对话请求会被拒绝。该服务只接受带 `Authorization: Bearer <token>` 的调用。向量检索依赖本地 Qdrant（docker-compose 中的 `qdrant` 服务，端口 6333）。
-
-访问：http://localhost:8000/docs（Swagger UI 文档）
-
-### 其他入口
-
-- API 文档（Swagger UI）：http://localhost:8800/swagger-ui/index.html
-- 健康检查：http://localhost:8800/actuator/health
 
 ## 默认账号
 
